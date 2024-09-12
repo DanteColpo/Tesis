@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -28,7 +27,7 @@ if uploaded_file is not None:
         periodo = st.selectbox('Seleccione el período', ['Mensual', 'Trimestral', 'Anual'])
         ver_total = st.checkbox('Mostrar demanda total')
         incluir_proyeccion = st.checkbox('Incluir proyección para el próximo mes')
-        
+
         if not ver_total:
             material = st.selectbox('Seleccione el material', data['MATERIAL'].unique())
 
@@ -56,58 +55,55 @@ if uploaded_file is not None:
         grouped_data['mes_nombre'] = pd.Categorical(grouped_data['mes_nombre'], categories=meses_ordenados, ordered=True)
         grouped_data = grouped_data.sort_values('mes_numero')
 
-        if incluir_proyeccion:
-            # Estimar proyección para el próximo mes basándose en la media de los meses anteriores
-            proyeccion_cantidad = grouped_data['CANTIDAD'].mean()
-            proximo_mes_numero = (grouped_data['mes_numero'].max() % 12) + 1
-            proximo_mes_nombre = meses_dict[proximo_mes_numero]
-
-            nuevo_dato = pd.DataFrame({
-                'mes_numero': [proximo_mes_numero],
-                'mes_nombre': [proximo_mes_nombre],
-                'SECTOR': ['Proyección'],
-                'CANTIDAD': [proyeccion_cantidad],
-                'PRECIO': [0]  # La proyección del precio se puede ajustar si se requiere
-            })
-
-            grouped_data = pd.concat([grouped_data, nuevo_dato], ignore_index=True)
-
         # Mostrar la tabla de datos agrupados
         st.write("Datos agrupados:")
         st.write(grouped_data)
 
-        # Graficar la cantidad de material por mes y sector con barras separadas
+        # Definir función de proyección simple para el próximo mes
+        def calcular_proyeccion(datos):
+            return datos.mean() * 1.05  # Proyección con un 5% de crecimiento
+
+        # Graficar la cantidad de material por mes y sector
         fig, ax = plt.subplots()
-        
-        # Obtener los meses únicos
-        meses = grouped_data['mes_nombre'].unique()
 
-        # Crear un índice para las barras de cada mes
-        indice = np.arange(len(meses))
-
-        # Anchura de las barras
-        ancho = 0.3
-
-        # Filtrar datos por sector
+        # Obtener datos por sector
         privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
         publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
 
-        # Dibujar las barras
-        ax.bar(indice - ancho/2, privado['CANTIDAD'], width=ancho, label='PRIVADO', color='blue')
-        ax.bar(indice + ancho/2, publico['CANTIDAD'], width=ancho, label='PÚBLICO', color='orange')
+        # Gráficas separadas si hay datos para cada sector
+        ancho = 0.3
+        indice = range(len(grouped_data['mes_nombre'].unique()))  # Índice para las barras
 
-        # Si se incluye la proyección, agregarla
-        if incluir_proyeccion:
-            proyeccion = grouped_data[grouped_data['SECTOR'] == 'Proyección']
-            ax.bar(indice[len(indice)-1] + ancho, proyeccion['CANTIDAD'], width=ancho, label='Proyección', color='green')
+        if not privado.empty:
+            ax.bar(indice, privado['CANTIDAD'], width=ancho, label='PRIVADO', color='blue')
 
-        # Etiquetas y título
+        if not publico.empty:
+            ax.bar([i + ancho for i in indice], publico['CANTIDAD'], width=ancho, label='PÚBLICO', color='orange')
+
         ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
-        ax.set_xticks(indice)
-        ax.set_xticklabels(meses)
         ax.legend(title='Sector')
+
+        # Incluir la proyección para el próximo mes
+        if incluir_proyeccion:
+            proyeccion_privado = calcular_proyeccion(privado['CANTIDAD']) if not privado.empty else 0
+            proyeccion_publico = calcular_proyeccion(publico['CANTIDAD']) if not publico.empty else 0
+
+            if ver_total:
+                proyeccion_total = proyeccion_privado + proyeccion_publico
+                nuevo_dato = pd.DataFrame({
+                    'mes_nombre': ['Proyección'],
+                    'CANTIDAD': [proyeccion_total],
+                    'SECTOR': ['Proyección']
+                })
+                ax.bar([i + ancho * 2 for i in indice], nuevo_dato['CANTIDAD'], width=ancho, label='Proyección', color='green')
+            else:
+                if not privado.empty:
+                    ax.bar([indice[-1] + ancho * 2], proyeccion_privado, width=ancho, label='Proyección PRIVADO', color='green')
+
+                if not publico.empty:
+                    ax.bar([indice[-1] + ancho * 2], proyeccion_publico, width=ancho, label='Proyección PÚBLICO', color='green')
 
         # Mostrar el gráfico
         st.pyplot(fig)
