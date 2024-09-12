@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -9,8 +8,9 @@ st.title('Proyección de Demanda de Áridos')
 # Cargar el archivo de Excel
 uploaded_file = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
-# Definir el orden de los meses
+# Definir el orden de los meses y los nombres en español
 meses_ordenados = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+meses_dict = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
 
 if uploaded_file is not None:
     # Leer el archivo Excel
@@ -35,9 +35,9 @@ if uploaded_file is not None:
         # Eliminar filas con valores nulos en la fecha
         data = data.dropna(subset=['FECHA'])
 
-        # Extraer nombre del mes en español
-        data['mes_nombre'] = data['FECHA'].dt.month_name(locale='es_ES')
+        # Extraer el número del mes y asignar el nombre del mes usando el diccionario manual
         data['mes_numero'] = data['FECHA'].dt.month
+        data['mes_nombre'] = data['mes_numero'].map(meses_dict)
 
         if ver_total:
             # Agrupar por mes y sector para ver demanda total
@@ -70,3 +70,4 @@ if uploaded_file is not None:
 
         # Mostrar el gráfico
         st.pyplot(fig)
+
