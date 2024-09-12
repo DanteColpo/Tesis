@@ -97,7 +97,7 @@ if uploaded_file is not None:
         ax.bar(indice + ancho / 2, publico_cantidad, width=ancho, label='PÚBLICO', color='orange')
 
         ax.set_xlabel('Mes')
-        ax.set_ylabel('Cantidad de Material')
+        ax.set_ylabel('Cantidad de Material M3')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
         ax.legend(title='Sector')
 
