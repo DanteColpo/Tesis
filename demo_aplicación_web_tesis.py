@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -70,16 +71,19 @@ if uploaded_file is not None:
         privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
         publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
 
-        # Gráficas separadas si hay datos para cada sector
+        # Alinear correctamente las barras usando np.arange
+        indice = np.arange(len(grouped_data['mes_nombre'].unique()))
         ancho = 0.3
-        indice = range(len(grouped_data['mes_nombre'].unique()))  # Índice para las barras
 
+        # Comprobar si los datos de cada sector están vacíos
         if not privado.empty:
-            ax.bar(indice, privado['CANTIDAD'], width=ancho, label='PRIVADO', color='blue')
+            ax.bar(indice - ancho / 2, privado['CANTIDAD'], width=ancho, label='PRIVADO', color='blue')
 
         if not publico.empty:
-            ax.bar([i + ancho for i in indice], publico['CANTIDAD'], width=ancho, label='PÚBLICO', color='orange')
+            ax.bar(indice + ancho / 2, publico['CANTIDAD'], width=ancho, label='PÚBLICO', color='orange')
 
+        ax.set_xticks(indice)
+        ax.set_xticklabels(grouped_data['mes_nombre'].unique())
         ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
@@ -92,18 +96,13 @@ if uploaded_file is not None:
 
             if ver_total:
                 proyeccion_total = proyeccion_privado + proyeccion_publico
-                nuevo_dato = pd.DataFrame({
-                    'mes_nombre': ['Proyección'],
-                    'CANTIDAD': [proyeccion_total],
-                    'SECTOR': ['Proyección']
-                })
-                ax.bar([i + ancho * 2 for i in indice], nuevo_dato['CANTIDAD'], width=ancho, label='Proyección', color='green')
+                ax.bar([indice[-1] + ancho], proyeccion_total, width=ancho, label='Proyección', color='green')
             else:
                 if not privado.empty:
-                    ax.bar([indice[-1] + ancho * 2], proyeccion_privado, width=ancho, label='Proyección PRIVADO', color='green')
+                    ax.bar([indice[-1] + ancho], proyeccion_privado, width=ancho, label='Proyección PRIVADO', color='green')
 
                 if not publico.empty:
-                    ax.bar([indice[-1] + ancho * 2], proyeccion_publico, width=ancho, label='Proyección PÚBLICO', color='green')
+                    ax.bar([indice[-1] + ancho], proyeccion_publico, width=ancho, label='Proyección PÚBLICO', color='green')
 
         # Mostrar el gráfico
         st.pyplot(fig)
