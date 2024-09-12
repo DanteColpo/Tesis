@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -27,10 +26,10 @@ if uploaded_file is not None:
         # Selección del período, material y si se quiere ver demanda total
         periodo = st.selectbox('Seleccione el período', ['Mensual', 'Trimestral', 'Anual'])
         ver_total = st.checkbox('Mostrar demanda total')
+        incluir_proyeccion = st.checkbox('Incluir proyección para el próximo mes')
+        
         if not ver_total:
             material = st.selectbox('Seleccione el material', data['MATERIAL'].unique())
-        
-        proyeccion = st.checkbox('Incluir proyección para el próximo mes')
 
         # Asegurarse de que la columna FECHA esté en formato de fecha
         data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
@@ -56,18 +55,20 @@ if uploaded_file is not None:
         grouped_data['mes_nombre'] = pd.Categorical(grouped_data['mes_nombre'], categories=meses_ordenados, ordered=True)
         grouped_data = grouped_data.sort_values('mes_numero')
 
-        # Proyección de demanda para el próximo mes
-        if proyeccion:
-            proximo_mes = 'Septiembre'  # Aquí puedes ajustar al mes que corresponda según la fecha
-            proyeccion_privado = np.random.randint(50, 200)
-            proyeccion_publico = np.random.randint(100, 400)
+        if incluir_proyeccion:
+            # Estimar proyección para el próximo mes basándose en la media de los meses anteriores
+            proyeccion_cantidad = grouped_data['CANTIDAD'].mean()
+            proximo_mes_numero = (grouped_data['mes_numero'].max() % 12) + 1
+            proximo_mes_nombre = meses_dict[proximo_mes_numero]
+
             nuevo_dato = pd.DataFrame({
-                'mes_numero': [9],  # 9 es Septiembre
-                'mes_nombre': ['Septiembre'],
-                'SECTOR': ['PRIVADO', 'PÚBLICO'],
-                'CANTIDAD': [proyeccion_privado, proyeccion_publico],
-                'PRECIO': [0, 0]  # Ajustar precio si es necesario
+                'mes_numero': [proximo_mes_numero],
+                'mes_nombre': [proximo_mes_nombre],
+                'SECTOR': ['Proyección'],
+                'CANTIDAD': [proyeccion_cantidad],
+                'PRECIO': [0]  # La proyección del precio se puede ajustar si se requiere
             })
+
             grouped_data = pd.concat([grouped_data, nuevo_dato], ignore_index=True)
 
         # Mostrar la tabla de datos agrupados
@@ -76,32 +77,14 @@ if uploaded_file is not None:
 
         # Graficar la cantidad de material por mes y sector
         fig, ax = plt.subplots()
-
-        # Definir colores para barras separadas y proyección
-        colores = {'PRIVADO': 'blue', 'PÚBLICO': 'orange', 'PROYECCIÓN': 'green'}
-        
-        # Graficar cada sector por separado con barras separadas
-        width = 0.35  # Ancho de las barras
-        meses = grouped_data['mes_nombre'].unique()
-        posiciones = np.arange(len(meses))
-
-        for i, sector in enumerate(grouped_data['SECTOR'].unique()):
+        posiciones = range(len(grouped_data['mes_nombre'].unique()))  # Posiciones para las barras
+        for sector in grouped_data['SECTOR'].unique():
             sector_data = grouped_data[grouped_data['SECTOR'] == sector]
-            ax.bar(posiciones + i * width, sector_data['CANTIDAD'], width=width, label=sector, color=colores[sector])
-
-        # Añadir la proyección con un color diferente
-        if proyeccion:
-            proyeccion_data = grouped_data[grouped_data['mes_nombre'] == proximo_mes]
-            ax.bar(posiciones[-1] + width, proyeccion_data['CANTIDAD'], width=width, label='PROYECCIÓN', color=colores['PROYECCIÓN'])
-
-        # Añadir línea punteada para guiar la curva de demanda
-        ax.plot(posiciones, grouped_data.groupby('mes_nombre')['CANTIDAD'].sum().reindex(meses), linestyle='--', color='gray')
+            ax.bar(sector_data['mes_nombre'], sector_data['CANTIDAD'], label=sector)
 
         ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
-        ax.set_xticks(posiciones + width / 2)
-        ax.set_xticklabels(meses, rotation=45)
         ax.legend(title='Sector')
 
         # Mostrar el gráfico
