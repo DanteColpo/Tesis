@@ -28,6 +28,7 @@ if uploaded_file is not None:
         periodo = st.selectbox('Seleccione el período', ['Mensual', 'Trimestral', 'Anual'])
         ver_total = st.checkbox('Mostrar demanda total')
         incluir_proyeccion = st.checkbox('Incluir proyección para el próximo mes')
+
         if not ver_total:
             material = st.selectbox('Seleccione el material', data['MATERIAL'].unique())
 
@@ -55,51 +56,46 @@ if uploaded_file is not None:
         grouped_data['mes_nombre'] = pd.Categorical(grouped_data['mes_nombre'], categories=meses_ordenados, ordered=True)
         grouped_data = grouped_data.sort_values('mes_numero')
 
-        # Mostrar la tabla de datos agrupados
-        st.write("Datos agrupados:")
-        st.write(grouped_data)
+        # Separar datos en privado y público
+        privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
+        publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
 
-        # Proyección para el próximo mes basada en la información previa
-        if incluir_proyeccion:
-            ultimo_mes = grouped_data['mes_numero'].max()
-            proximo_mes_numero = (ultimo_mes % 12) + 1  # Para que al llegar a diciembre pase a enero
-            proximo_mes_nombre = meses_dict[proximo_mes_numero]
+        # Inicializar los arrays de cantidad con ceros
+        indice = np.arange(len(grouped_data['mes_nombre'].unique()))  # Asegura que el eje x tenga valores uniformes
+        ancho = 0.3  # Ancho de las barras
 
-            # Agregar proyección basada en el promedio de la demanda total
-            nuevo_dato = pd.DataFrame({
-                'mes_numero': [proximo_mes_numero],
-                'mes_nombre': [proximo_mes_nombre],
-                'SECTOR': ['Proyección'],
-                'CANTIDAD': [grouped_data['CANTIDAD'].mean()],  # Ejemplo: promedio de la cantidad actual
-                'PRECIO': [grouped_data['PRECIO'].mean()]  # Ejemplo: promedio del precio actual
-            })
-            grouped_data = pd.concat([grouped_data, nuevo_dato], ignore_index=True)
+        privado_cantidad = np.zeros(len(indice))  # Inicializamos el array con ceros
+        publico_cantidad = np.zeros(len(indice))  # Inicializamos el array con ceros
 
-        # Graficar la cantidad de material por mes y sector
+        # Comprobamos si hay datos para cada sector y si no hay, lo dejamos como 0
+        if not privado.empty:
+            for i, mes in enumerate(grouped_data['mes_nombre'].unique()):
+                if mes in privado['mes_nombre'].values:
+                    privado_cantidad[i] = privado[privado['mes_nombre'] == mes]['CANTIDAD'].values[0]
+
+        if not publico.empty:
+            for i, mes in enumerate(grouped_data['mes_nombre'].unique()):
+                if mes in publico['mes_nombre'].values:
+                    publico_cantidad[i] = publico[publico['mes_nombre'] == mes]['CANTIDAD'].values[0]
+
+        # Graficar los datos
         fig, ax = plt.subplots()
 
-        ancho = 0.35  # Ancho de las barras
-
-        # Comprobar si los datos del sector están vacíos
-        if not grouped_data[grouped_data['SECTOR'] == 'PRIVADO'].empty:
-            privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
-            ax.bar(np.arange(len(privado['mes_nombre'])), privado['CANTIDAD'], width=ancho, label='PRIVADO')
-
-        if not grouped_data[grouped_data['SECTOR'] == 'PÚBLICO'].empty:
-            publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
-            ax.bar(np.arange(len(publico['mes_nombre'])) + ancho / 2, publico['CANTIDAD'], width=ancho, label='PÚBLICO')
-
-        # Si se ha solicitado la proyección, graficarla
-        if incluir_proyeccion:
-            proyeccion = grouped_data[grouped_data['SECTOR'] == 'Proyección']
-            ax.bar(np.arange(len(proyeccion['mes_nombre'])) + ancho, proyeccion['CANTIDAD'], width=ancho, color='green', label='Proyección')
+        ax.bar(indice - ancho / 2, privado_cantidad, width=ancho, label='PRIVADO', color='blue')
+        ax.bar(indice + ancho / 2, publico_cantidad, width=ancho, label='PÚBLICO', color='orange')
 
         ax.set_xlabel('Mes')
-        ax.set_ylabel('Cantidad de Material M3')
+        ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
-        ax.set_xticks(np.arange(len(grouped_data['mes_nombre'])))
-        ax.set_xticklabels(grouped_data['mes_nombre'].values, rotation=45)
         ax.legend(title='Sector')
+
+        # Proyección para el próximo mes
+        if incluir_proyeccion:
+            proxima_cantidad_privado = np.mean(privado_cantidad[-3:])  # Proyección basada en el promedio de los últimos 3 meses
+            proxima_cantidad_publico = np.mean(publico_cantidad[-3:])
+            ax.bar(len(indice), proxima_cantidad_privado, width=ancho, label='Proyección Privado', color='green')
+            ax.bar(len(indice) + ancho, proxima_cantidad_publico, width=ancho, label='Proyección Público', color='red')
 
         # Mostrar el gráfico
         st.pyplot(fig)
+
