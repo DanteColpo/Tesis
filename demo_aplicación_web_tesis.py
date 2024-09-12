@@ -85,9 +85,9 @@ if uploaded_file is not None:
         meses = grouped_data['mes_nombre'].unique()
         posiciones = np.arange(len(meses))
 
-        for sector in grouped_data['SECTOR'].unique():
+        for i, sector in enumerate(grouped_data['SECTOR'].unique()):
             sector_data = grouped_data[grouped_data['SECTOR'] == sector]
-            ax.bar(posiciones, sector_data['CANTIDAD'], width=width, label=sector, color=colores[sector])
+            ax.bar(posiciones + i * width, sector_data['CANTIDAD'], width=width, label=sector, color=colores[sector])
 
         # Añadir la proyección con un color diferente
         if proyeccion:
@@ -95,16 +95,14 @@ if uploaded_file is not None:
             ax.bar(posiciones[-1] + width, proyeccion_data['CANTIDAD'], width=width, label='PROYECCIÓN', color=colores['PROYECCIÓN'])
 
         # Añadir línea punteada para guiar la curva de demanda
-        ax.plot(posiciones, grouped_data.groupby('mes_nombre')['CANTIDAD'].sum(), linestyle='--', color='gray')
+        ax.plot(posiciones, grouped_data.groupby('mes_nombre')['CANTIDAD'].sum().reindex(meses), linestyle='--', color='gray')
 
         ax.set_xlabel('Mes')
-        ax.set_ylabel('Cantidad de Material M3')
+        ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
-        ax.set_xticks(posiciones)
+        ax.set_xticks(posiciones + width / 2)
         ax.set_xticklabels(meses, rotation=45)
         ax.legend(title='Sector')
 
         # Mostrar el gráfico
         st.pyplot(fig)
-
-
