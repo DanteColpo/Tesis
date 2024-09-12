@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -51,30 +52,31 @@ if uploaded_file is not None:
         st.write("Datos agrupados:")
         st.write(grouped_data)
 
-        # Diferenciación de la demanda pública y privada con colores
+        # Gráfica de barras separadas por sector
         fig, ax = plt.subplots()
 
-        # Graficar la cantidad de material por el período seleccionado
-        colores = {'PÚBLICO': 'blue', 'PRIVADO': 'green'}
-        for sector in grouped_data['SECTOR'].unique():
-            sector_data = grouped_data[grouped_data['SECTOR'] == sector]
-            ax.bar(sector_data['mes_nombre'], sector_data['CANTIDAD'], label=sector, color=colores.get(sector, 'gray'))
+        # Crear un array con los nombres de los meses
+        meses_unicos = grouped_data['mes_nombre'].unique()
+        x = np.arange(len(meses_unicos))  # la posición de los meses en el eje X
 
-        # Agregar leyenda
-        ax.legend(title="Sector")
+        # Tamaño de las barras
+        width = 0.35
 
-        # Añadir proyección de demanda en color diferente (simulación)
-        proyeccion_demand = st.checkbox('Mostrar demanda proyectada')
-        if proyeccion_demand:
-            # Aquí agregaré algunos datos ficticios para la proyección
-            demanda_proyectada = grouped_data.copy()
-            demanda_proyectada['CANTIDAD'] *= 1.1  # Proyección de +10%
-            ax.plot(demanda_proyectada['mes_nombre'], demanda_proyectada['CANTIDAD'], linestyle='--', color='red', label="Proyección")
+        # Separar datos de los sectores
+        privado_data = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
+        publico_data = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
 
-        # Etiquetas y título del gráfico
+        # Ajustar las posiciones de las barras para que no se solapen
+        ax.bar(x - width/2, privado_data['CANTIDAD'], width, label='PRIVADO', color='green')
+        ax.bar(x + width/2, publico_data['CANTIDAD'], width, label='PÚBLICO', color='blue')
+
+        # Agregar etiquetas y leyenda
+        ax.set_xticks(x)
+        ax.set_xticklabels(meses_unicos, rotation=45)
         ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda para {material} ({periodo})')
+        ax.legend(title="Sector")
 
         # Mostrar el gráfico
         st.pyplot(fig)
