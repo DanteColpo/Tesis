@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -75,16 +76,37 @@ if uploaded_file is not None:
         st.write("Datos agrupados:")
         st.write(grouped_data)
 
-        # Graficar la cantidad de material por mes y sector
+        # Graficar la cantidad de material por mes y sector con barras separadas
         fig, ax = plt.subplots()
-        posiciones = range(len(grouped_data['mes_nombre'].unique()))  # Posiciones para las barras
-        for sector in grouped_data['SECTOR'].unique():
-            sector_data = grouped_data[grouped_data['SECTOR'] == sector]
-            ax.bar(sector_data['mes_nombre'], sector_data['CANTIDAD'], label=sector)
+        
+        # Obtener los meses únicos
+        meses = grouped_data['mes_nombre'].unique()
 
+        # Crear un índice para las barras de cada mes
+        indice = np.arange(len(meses))
+
+        # Anchura de las barras
+        ancho = 0.3
+
+        # Filtrar datos por sector
+        privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
+        publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
+
+        # Dibujar las barras
+        ax.bar(indice - ancho/2, privado['CANTIDAD'], width=ancho, label='PRIVADO', color='blue')
+        ax.bar(indice + ancho/2, publico['CANTIDAD'], width=ancho, label='PÚBLICO', color='orange')
+
+        # Si se incluye la proyección, agregarla
+        if incluir_proyeccion:
+            proyeccion = grouped_data[grouped_data['SECTOR'] == 'Proyección']
+            ax.bar(indice[len(indice)-1] + ancho, proyeccion['CANTIDAD'], width=ancho, label='Proyección', color='green')
+
+        # Etiquetas y título
         ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
+        ax.set_xticks(indice)
+        ax.set_xticklabels(meses)
         ax.legend(title='Sector')
 
         # Mostrar el gráfico
