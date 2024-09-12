@@ -32,21 +32,20 @@ if uploaded_file is not None:
         # Eliminar filas con valores nulos en la fecha
         material_data = material_data.dropna(subset=['FECHA'])
 
+        # Extraer el mes y año de la fecha
+        material_data['mes'] = material_data['FECHA'].dt.month
+        material_data['año'] = material_data['FECHA'].dt.year
+
         # Mapear los meses con sus nombres
         meses = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 
                  8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
+        material_data['mes_nombre'] = material_data['mes'].map(meses)
 
-        # Agrupar los datos por mes, trimestre o año según la selección
-        if periodo == 'Mensual':
-            material_data['mes'] = material_data['FECHA'].dt.month
-            material_data['mes_nombre'] = material_data['mes'].map(meses)  # Usar los nombres de los meses
-            grouped_data = material_data.groupby(['mes_nombre', 'SECTOR']).agg({'CANTIDAD': 'sum', 'PRECIO': 'sum'}).reset_index()
-        elif periodo == 'Trimestral':
-            material_data['trimestre'] = material_data['FECHA'].dt.to_period('Q')
-            grouped_data = material_data.groupby(['trimestre', 'SECTOR']).agg({'CANTIDAD': 'sum', 'PRECIO': 'sum'}).reset_index()
-        else:
-            material_data['año'] = material_data['FECHA'].dt.year
-            grouped_data = material_data.groupby(['año', 'SECTOR']).agg({'CANTIDAD': 'sum', 'PRECIO': 'sum'}).reset_index()
+        # Ordenar por fecha correctamente
+        material_data = material_data.sort_values(by=['año', 'mes'])
+
+        # Agrupar los datos por mes y sector
+        grouped_data = material_data.groupby(['mes_nombre', 'SECTOR']).agg({'CANTIDAD': 'sum', 'PRECIO': 'sum'}).reset_index()
 
         # Mostrar la tabla de datos agrupados
         st.write("Datos agrupados:")
@@ -59,7 +58,7 @@ if uploaded_file is not None:
         colores = {'PÚBLICO': 'blue', 'PRIVADO': 'green'}
         for sector in grouped_data['SECTOR'].unique():
             sector_data = grouped_data[grouped_data['SECTOR'] == sector]
-            ax.bar(sector_data.iloc[:, 0], sector_data['CANTIDAD'], label=sector, color=colores.get(sector, 'gray'))
+            ax.bar(sector_data['mes_nombre'], sector_data['CANTIDAD'], label=sector, color=colores.get(sector, 'gray'))
 
         # Agregar leyenda
         ax.legend(title="Sector")
@@ -70,10 +69,10 @@ if uploaded_file is not None:
             # Aquí agregaré algunos datos ficticios para la proyección
             demanda_proyectada = grouped_data.copy()
             demanda_proyectada['CANTIDAD'] *= 1.1  # Proyección de +10%
-            ax.plot(demanda_proyectada.iloc[:, 0], demanda_proyectada['CANTIDAD'], linestyle='--', color='red', label="Proyección")
+            ax.plot(demanda_proyectada['mes_nombre'], demanda_proyectada['CANTIDAD'], linestyle='--', color='red', label="Proyección")
 
         # Etiquetas y título del gráfico
-        ax.set_xlabel(periodo)
+        ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda para {material} ({periodo})')
 
