@@ -3,18 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Aplicar estilo con CSS para cambiar el fondo
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #f5f5f5;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
 
