@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
@@ -56,53 +56,46 @@ if uploaded_file is not None:
         grouped_data['mes_nombre'] = pd.Categorical(grouped_data['mes_nombre'], categories=meses_ordenados, ordered=True)
         grouped_data = grouped_data.sort_values('mes_numero')
 
-        # Mostrar la tabla de datos agrupados
-        st.write("Datos agrupados:")
-        st.write(grouped_data)
-
-        # Definir función de proyección simple para el próximo mes
-        def calcular_proyeccion(datos):
-            return datos.mean() * 1.05  # Proyección con un 5% de crecimiento
-
-        # Graficar la cantidad de material por mes y sector
-        fig, ax = plt.subplots()
-
-        # Obtener datos por sector
+        # Separar datos en privado y público
         privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
         publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
 
-        # Alinear correctamente las barras usando np.arange
-        indice = np.arange(len(grouped_data['mes_nombre'].unique()))
-        ancho = 0.3
+        # Inicializar los arrays de cantidad con ceros
+        indice = np.arange(len(grouped_data['mes_nombre'].unique()))  # Asegura que el eje x tenga valores uniformes
+        ancho = 0.3  # Ancho de las barras
 
-        # Comprobar si los datos de cada sector están vacíos
+        privado_cantidad = np.zeros(len(indice))  # Inicializamos el array con ceros
+        publico_cantidad = np.zeros(len(indice))  # Inicializamos el array con ceros
+
+        # Comprobamos si hay datos para cada sector y si no hay, lo dejamos como 0
         if not privado.empty:
-            ax.bar(indice - ancho / 2, privado['CANTIDAD'], width=ancho, label='PRIVADO', color='blue')
+            for i, mes in enumerate(grouped_data['mes_nombre'].unique()):
+                if mes in privado['mes_nombre'].values:
+                    privado_cantidad[i] = privado[privado['mes_nombre'] == mes]['CANTIDAD'].values[0]
 
         if not publico.empty:
-            ax.bar(indice + ancho / 2, publico['CANTIDAD'], width=ancho, label='PÚBLICO', color='orange')
+            for i, mes in enumerate(grouped_data['mes_nombre'].unique()):
+                if mes in publico['mes_nombre'].values:
+                    publico_cantidad[i] = publico[publico['mes_nombre'] == mes]['CANTIDAD'].values[0]
 
-        ax.set_xticks(indice)
-        ax.set_xticklabels(grouped_data['mes_nombre'].unique())
+        # Graficar los datos
+        fig, ax = plt.subplots()
+
+        ax.bar(indice - ancho / 2, privado_cantidad, width=ancho, label='PRIVADO', color='blue')
+        ax.bar(indice + ancho / 2, publico_cantidad, width=ancho, label='PÚBLICO', color='orange')
+
         ax.set_xlabel('Mes')
         ax.set_ylabel('Cantidad de Material')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
         ax.legend(title='Sector')
 
-        # Incluir la proyección para el próximo mes
+        # Proyección para el próximo mes
         if incluir_proyeccion:
-            proyeccion_privado = calcular_proyeccion(privado['CANTIDAD']) if not privado.empty else 0
-            proyeccion_publico = calcular_proyeccion(publico['CANTIDAD']) if not publico.empty else 0
-
-            if ver_total:
-                proyeccion_total = proyeccion_privado + proyeccion_publico
-                ax.bar([indice[-1] + ancho], proyeccion_total, width=ancho, label='Proyección', color='green')
-            else:
-                if not privado.empty:
-                    ax.bar([indice[-1] + ancho], proyeccion_privado, width=ancho, label='Proyección PRIVADO', color='green')
-
-                if not publico.empty:
-                    ax.bar([indice[-1] + ancho], proyeccion_publico, width=ancho, label='Proyección PÚBLICO', color='green')
+            proxima_cantidad_privado = np.mean(privado_cantidad[-3:])  # Proyección basada en el promedio de los últimos 3 meses
+            proxima_cantidad_publico = np.mean(publico_cantidad[-3:])
+            ax.bar(len(indice), proxima_cantidad_privado, width=ancho, label='Proyección Privado', color='green')
+            ax.bar(len(indice) + ancho, proxima_cantidad_publico, width=ancho, label='Proyección Público', color='red')
 
         # Mostrar el gráfico
         st.pyplot(fig)
+
