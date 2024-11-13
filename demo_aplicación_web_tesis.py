@@ -17,15 +17,14 @@ if uploaded_file is not None:
     # Leer el archivo Excel
     data = pd.read_excel(uploaded_file)
 
-    # Verificar si hay datos cargados
     if data.empty:
         st.warning("El archivo está vacío o no tiene datos válidos.")
     else:
         st.write("Datos cargados:")
-        st.write(data.head())  # Mostrar los primeros datos del archivo
+        st.write(data.head())
 
-        # Selección del período, material y si se quiere ver demanda total
-        periodo = st.selectbox('Seleccione el período', ['Mensual', 'Trimestral', 'Anual'])
+        # Selección del período y material
+        periodo = st.selectbox('Seleccione el período', ['Mensual', 'Anual'])
         ver_total = st.checkbox('Mostrar demanda total')
         incluir_proyeccion = st.checkbox('Incluir proyección para el próximo mes')
 
@@ -34,68 +33,48 @@ if uploaded_file is not None:
 
         # Asegurarse de que la columna FECHA esté en formato de fecha
         data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
-
-        # Eliminar filas con valores nulos en la fecha
         data = data.dropna(subset=['FECHA'])
+        data['AÑO'] = data['FECHA'].dt.year
+        data['MES'] = data['FECHA'].dt.month.map(meses_dict)
 
-        # Extraer el número del mes y asignar el nombre del mes usando el diccionario manual
-        data['mes_numero'] = data['FECHA'].dt.month
-        data['mes_nombre'] = data['mes_numero'].map(meses_dict)
-
+        # Agrupación de datos por período y material
         if ver_total:
-            # Agrupar por mes y sector para ver demanda total
-            grouped_data = data.groupby(['mes_numero', 'mes_nombre', 'SECTOR']).agg({'CANTIDAD': 'sum', 'PRECIO': 'sum'}).reset_index()
+            grouped_data = data.groupby(['AÑO', 'MES', 'SECTOR']).agg({'CANTIDAD': 'sum'}).reset_index()
         else:
-            # Filtrar los datos por material seleccionado
-            material_data = data[data['MATERIAL'] == material].copy()  # Copiar para evitar advertencias
+            material_data = data[data['MATERIAL'] == material].copy()
+            grouped_data = material_data.groupby(['AÑO', 'MES', 'SECTOR']).agg({'CANTIDAD': 'sum'}).reset_index()
 
-            # Agrupar por mes y sector para ver demanda del material
-            grouped_data = material_data.groupby(['mes_numero', 'mes_nombre', 'SECTOR']).agg({'CANTIDAD': 'sum', 'PRECIO': 'sum'}).reset_index()
+        # Ajustar el gráfico según el período seleccionado
+        if periodo == 'Anual':
+            grouped_data = grouped_data.groupby(['AÑO', 'SECTOR']).agg({'CANTIDAD': 'sum'}).reset_index()
+            x = grouped_data['AÑO']
+            xlabel = 'Año'
+        else:
+            x = grouped_data['MES']
+            xlabel = 'Mes'
 
-        # Ordenar por mes_numero
-        grouped_data['mes_nombre'] = pd.Categorical(grouped_data['mes_nombre'], categories=meses_ordenados, ordered=True)
-        grouped_data = grouped_data.sort_values('mes_numero')
-
-        # Separar datos en privado y público
-        privado = grouped_data[grouped_data['SECTOR'] == 'PRIVADO']
-        publico = grouped_data[grouped_data['SECTOR'] == 'PÚBLICO']
-
-        # Inicializar los arrays de cantidad con ceros
-        indice = np.arange(len(grouped_data['mes_nombre'].unique()))  # Asegura que el eje x tenga valores uniformes
-        ancho = 0.3  # Ancho de las barras
-
-        privado_cantidad = np.zeros(len(indice))  # Inicializamos el array con ceros
-        publico_cantidad = np.zeros(len(indice))  # Inicializamos el array con ceros
-
-        # Comprobamos si hay datos para cada sector y si no hay, lo dejamos como 0
-        if not privado.empty:
-            for i, mes in enumerate(grouped_data['mes_nombre'].unique()):
-                if mes in privado['mes_nombre'].values:
-                    privado_cantidad[i] = privado[privado['mes_nombre'] == mes]['CANTIDAD'].values[0]
-
-        if not publico.empty:
-            for i, mes in enumerate(grouped_data['mes_nombre'].unique()):
-                if mes in publico['mes_nombre'].values:
-                    publico_cantidad[i] = publico[publico['mes_nombre'] == mes]['CANTIDAD'].values[0]
-
-        # Graficar los datos
+        # Separar datos en sectores y graficar
         fig, ax = plt.subplots()
+        for sector in grouped_data['SECTOR'].unique():
+            sector_data = grouped_data[grouped_data['SECTOR'] == sector]
+            ax.plot(x, sector_data['CANTIDAD'], label=sector)
 
-        ax.bar(indice - ancho / 2, privado_cantidad, width=ancho, label='PRIVADO', color='blue')
-        ax.bar(indice + ancho / 2, publico_cantidad, width=ancho, label='PÚBLICO', color='orange')
-
-        ax.set_xlabel('Mes')
+        # Ajustar etiquetas y título
+        ax.set_xlabel(xlabel)
         ax.set_ylabel('Cantidad de Material M3')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
         ax.legend(title='Sector')
 
-        # Proyección para el próximo mes
-        if incluir_proyeccion:
-            proxima_cantidad_privado = np.mean(privado_cantidad[-3:])  # Proyección basada en el promedio de los últimos 3 meses
-            proxima_cantidad_publico = np.mean(publico_cantidad[-3:])
-            ax.bar(len(indice), proxima_cantidad_privado, width=ancho, label='Proyección Privado', color='green')
-            ax.bar(len(indice) + ancho, proxima_cantidad_publico, width=ancho, label='Proyección Público', color='red')
+        # Incluir proyección con ARIMA y MAPE
+        if incluir_proyeccion and periodo == 'Mensual':
+            arima_model = ARIMA(grouped_data['CANTIDAD'], order=(1, 1, 1)).fit()
+            forecast = arima_model.forecast(steps=1)
+            mape = mean_absolute_percentage_error(grouped_data['CANTIDAD'], arima_model.predict())
+            conf_interval = arima_model.get_forecast(steps=1).conf_int()
 
-        # Mostrar el gráfico
+            st.write(f"Proyección del próximo mes: {forecast.values[0]:.2f} ± ({conf_interval[0,0]:.2f}, {conf_interval[0,1]:.2f})")
+            st.write(f"MAPE del modelo: {mape:.2%}")
+        
         st.pyplot(fig)
+
 
