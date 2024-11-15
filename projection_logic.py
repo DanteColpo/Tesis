@@ -18,6 +18,22 @@ def upload_and_process_file():
             return data
     return None
 
+
+def find_best_alpha(data):
+    """Busca el mejor valor de alpha para la suavización exponencial minimizando el MAPE."""
+    best_alpha = None
+    best_mape = float('inf')
+
+    for alpha in np.arange(0.1, 1.1, 0.1):  # Prueba valores de alpha de 0.1 a 1 en pasos de 0.1
+        fitted_values = SimpleExpSmoothing(data).fit(smoothing_level=alpha, optimized=False).fittedvalues
+        mape = mean_absolute_percentage_error(data, fitted_values)
+        
+        if mape < best_mape:
+            best_mape = mape
+            best_alpha = alpha
+    
+    return best_alpha, best_mape
+
 def show_projection(data):
     st.write("Proyección ARIMA para el Sector Privado")
 
@@ -29,6 +45,7 @@ def show_projection(data):
     # Filtrar solo los datos del sector privado
     data_privado = data[data['SECTOR'] == 'PRIVADO']
 
+    # Verificación de que hay suficientes datos
     if data_privado.empty or len(data_privado) < 12:
         st.warning("No hay suficientes datos para el sector PRIVADO después del resampleo.")
         return
@@ -36,48 +53,26 @@ def show_projection(data):
         # Resamplear a datos mensuales y seleccionar solo la columna CANTIDAD
         data_privado = data_privado[['CANTIDAD']].resample('M').sum()
 
-        # Suavización exponencial
-        best_alpha = 0.9
+        # Buscar el mejor valor de alpha para la suavización exponencial
+        best_alpha, best_mape_alpha = find_best_alpha(data_privado['CANTIDAD'])
         data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
-        # Entrenar el modelo con todos los datos disponibles
+        # División en conjunto de entrenamiento
         train = data_privado['CANTIDAD_SUAVIZADA']
 
-        # Búsqueda del mejor modelo ARIMA
-        best_mape = float('inf')
-        best_rmse = float('inf')
-        best_order = None
-
-        for p in range(1, 5):
-            for d in range(1, 2):
-                for q in range(1, 5):
-                    try:
-                        model = ARIMA(train, order=(p, d, q)).fit()
-                        forecast = model.forecast(steps=3)
-                        mape = mean_absolute_percentage_error(train[-3:], forecast)
-                        rmse = np.sqrt(mean_squared_error(train[-3:], forecast))
-
-                        if mape < best_mape:
-                            best_mape = mape
-                            best_rmse = rmse
-                            best_order = (p, d, q)
-
-                    except Exception as e:
-                        st.write(f"Error en ARIMA({p},{d},{q}): {e}")
-
-        # Mejor modelo encontrado
-        st.write(f"Mejor modelo ARIMA encontrado: {best_order} con Precisión del Pronóstico: {100 - best_mape:.2f}% (MAPE: {best_mape:.2%})")
-
-        # Pronóstico final hacia el futuro
+        # Ajuste del modelo ARIMA
+        best_order = (4, 1, 1)
         model = ARIMA(train, order=best_order).fit()
-        forecast_steps = 3  # Proyecta los siguientes 4 meses, incluyendo septiembre
+
+        # Pronóstico para los próximos meses
+        forecast_steps = 3
         forecast = model.forecast(steps=forecast_steps)
         forecast_dates = pd.date_range(train.index[-1] + pd.DateOffset(months=1), periods=forecast_steps, freq='M')
 
-        # Visualización del resultado
+        # Visualización de resultados
         fig, ax = plt.subplots()
         ax.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
-        ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA{best_order}', linestyle='--', color='orange')
+        ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA({best_order[0]},{best_order[1]},{best_order[2]})', linestyle='--', color='orange')
         ax.set_xlabel('Fecha')
         ax.set_ylabel('Cantidad de Material')
         ax.legend()
@@ -87,17 +82,10 @@ def show_projection(data):
         # Mostrar resultados en tabla
         forecast_table = pd.DataFrame({
             'Fecha': forecast_dates.strftime("%B %Y"),
-            'Proyección ARIMA': forecast.values
+            'Proyección ARIMA': forecast
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
 
-        # Explicación sobre la precisión del pronóstico
-        st.write("### Precisión del Pronóstico:")
-        st.write(f"Este modelo tiene un nivel de precisión del {100 - best_mape:.2f}%, lo que indica que los valores pronosticados están cercanos a los valores reales históricos.")
-        st.write("**Interpretación del gráfico:** Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
-
-# Cargar y procesar el archivo
-data = upload_and_process_file()
-if data is not None:
-    show_projection(data)
+        # Mostrar MAPE de suavización exponencial
+        st.write(f"### Mejor alpha encontrado para Suavización Exponencial: {best_alpha} (MAPE: {best_mape_alpha:.2%})")
