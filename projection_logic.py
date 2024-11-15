@@ -40,9 +40,8 @@ def show_projection(data):
         best_alpha = 0.9
         data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
-        # División en conjunto de entrenamiento y prueba
-        train = data_privado['CANTIDAD_SUAVIZADA'].iloc[:-3]
-        test = data_privado['CANTIDAD_SUAVIZADA'].iloc[-3:]
+        # Entrenar el modelo con todos los datos disponibles
+        train = data_privado['CANTIDAD_SUAVIZADA']
 
         # Búsqueda del mejor modelo ARIMA
         best_mape = float('inf')
@@ -50,13 +49,13 @@ def show_projection(data):
         best_order = None
 
         for p in range(1, 5):
-            for d in range(1, 2):  # Fijamos d en 1 para diferenciar solo una vez
+            for d in range(1, 2):
                 for q in range(1, 5):
                     try:
                         model = ARIMA(train, order=(p, d, q)).fit()
                         forecast = model.forecast(steps=3)
-                        mape = mean_absolute_percentage_error(test, forecast)
-                        rmse = np.sqrt(mean_squared_error(test, forecast))
+                        mape = mean_absolute_percentage_error(train[-3:], forecast)
+                        rmse = np.sqrt(mean_squared_error(train[-3:], forecast))
 
                         if mape < best_mape:
                             best_mape = mape
@@ -66,19 +65,18 @@ def show_projection(data):
                     except Exception as e:
                         st.write(f"Error en ARIMA({p},{d},{q}): {e}")
 
-        # Mostrar el mejor modelo encontrado
+        # Mejor modelo encontrado
         st.write(f"Mejor modelo ARIMA encontrado: {best_order} con Precisión del Pronóstico: {100 - best_mape:.2f}% (MAPE: {best_mape:.2%})")
 
-        # Pronóstico final usando el mejor modelo
+        # Pronóstico final hacia el futuro
         model = ARIMA(train, order=best_order).fit()
-        forecast_steps = 3  # Proyecta los siguientes 3 meses
+        forecast_steps = 4  # Proyecta los siguientes 4 meses, incluyendo septiembre
         forecast = model.forecast(steps=forecast_steps)
         forecast_dates = pd.date_range(train.index[-1] + pd.DateOffset(months=1), periods=forecast_steps, freq='M')
 
         # Visualización del resultado
         fig, ax = plt.subplots()
         ax.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
-        ax.plot(test.index, test, label='Datos Reales Suavizados')
         ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA{best_order}', linestyle='--', color='orange')
         ax.set_xlabel('Fecha')
         ax.set_ylabel('Cantidad de Material')
