@@ -24,7 +24,7 @@ def find_best_alpha(data):
     best_alpha = None
     best_mape = float('inf')
 
-    for alpha in np.arange(0.1, 1.1, 0.1):  # Prueba valores de alpha de 0.1 a 1 en pasos de 0.1
+    for alpha in np.arange(0.01, 1.1, 0.01):  # Prueba valores de alpha de 0.1 a 1 en pasos de 0.1
         fitted_values = SimpleExpSmoothing(data).fit(smoothing_level=alpha, optimized=False).fittedvalues
         mape = mean_absolute_percentage_error(data, fitted_values)
         
