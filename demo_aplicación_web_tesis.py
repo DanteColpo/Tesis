@@ -6,28 +6,27 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
 from datetime import datetime
 
-# Configuración de la página con icono y título
-st.set_page_config(page_title="Proyekta+", layout="centered", page_icon="📈")
+# Configuración de la página
+st.set_page_config(page_title="Proyekta+", page_icon="📊", layout="centered")
 
-# Insertar el logo y título de la aplicación
-st.image("Logo_ProyeKTA+.png", width=200)  # Asegúrate de que el nombre del archivo del logo coincida
-st.title('Proyekta+')
-st.subheader('Proyecta tu éxito')
+# Insertar el logo de la aplicación en el centro, con tamaño ajustado
+st.image("Logo_ProyekTA+.png", width=300)  # Asegúrate de que el archivo del logo esté en el mismo directorio
 
-# Descripción breve de la aplicación
-st.write("Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.")
+# Instrucciones rápidas para el usuario
+st.markdown("<h2 style='text-align: center; color: #F97316;'>Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.</h2>", unsafe_allow_html=True)
 
 # Cargar el archivo de Excel
 uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
 
-# Diccionario de meses y orden en español
+# Diccionarios de meses en español y orden para visualización
 meses_ordenados = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 meses_dict = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
 
 if uploaded_file is not None:
     # Leer el archivo Excel
     data = pd.read_excel(uploaded_file)
-    
+
+    # Verificar si el archivo contiene datos
     if data.empty:
         st.warning("El archivo está vacío o no tiene datos válidos.")
     else:
@@ -35,28 +34,28 @@ if uploaded_file is not None:
         st.write("Datos cargados:")
         st.write(data.head())
 
-        # Opciones de configuración para visualización y proyección
+        # Selección del período y material
         periodo = st.selectbox('Seleccione el período', ['Mensual', 'Anual'])
         ver_total = st.checkbox('Mostrar demanda total')
         incluir_proyeccion = st.checkbox('Incluir proyección para el próximo mes')
-        
+
         if not ver_total:
             material = st.selectbox('Seleccione el material', data['MATERIAL'].unique())
 
-        # Conversión de fechas y agrupación de datos
+        # Asegurarse de que la columna FECHA esté en formato de fecha
         data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
         data = data.dropna(subset=['FECHA'])
         data['AÑO'] = data['FECHA'].dt.year
         data['MES'] = data['FECHA'].dt.month.map(meses_dict)
 
-        # Agrupación de datos
+        # Agrupación de datos por período y material
         if ver_total:
             grouped_data = data.groupby(['AÑO', 'MES', 'SECTOR']).agg({'CANTIDAD': 'sum'}).reset_index()
         else:
             material_data = data[data['MATERIAL'] == material].copy()
             grouped_data = material_data.groupby(['AÑO', 'MES', 'SECTOR']).agg({'CANTIDAD': 'sum'}).reset_index()
 
-        # Gráfica según el periodo seleccionado
+        # Ajustar el gráfico según el período seleccionado
         if periodo == 'Anual':
             grouped_data = grouped_data.groupby(['AÑO', 'SECTOR']).agg({'CANTIDAD': 'sum'}).reset_index()
             x = grouped_data['AÑO']
@@ -65,21 +64,22 @@ if uploaded_file is not None:
             x = grouped_data['MES']
             xlabel = 'Mes'
 
-        # Creación del gráfico con colores temáticos
+        # Separar datos en sectores y graficar
         fig, ax = plt.subplots()
-        colors = ['#FF6F61', '#6B5B95', '#88B04B']  # Colores temáticos
-        for i, sector in enumerate(grouped_data['SECTOR'].unique()):
+        for sector in grouped_data['SECTOR'].unique():
             sector_data = grouped_data[grouped_data['SECTOR'] == sector]
-            ax.plot(x, sector_data['CANTIDAD'], label=sector, color=colors[i % len(colors)], linewidth=2)
+            ax.plot(x, sector_data['CANTIDAD'], label=sector)
 
+        # Ajustar etiquetas y título
         ax.set_xlabel(xlabel)
-        ax.set_ylabel('Cantidad de Material (M3)')
+        ax.set_ylabel('Cantidad de Material M3')
         ax.set_title(f'Proyección de demanda {"total" if ver_total else "para " + material} ({periodo})')
         ax.legend(title='Sector')
 
-        # Incluir proyección con ARIMA
+        # Incluir proyección con ARIMA y MAPE
         if incluir_proyeccion and periodo == 'Mensual':
             try:
+                # ARIMA para proyección
                 arima_model = ARIMA(grouped_data['CANTIDAD'], order=(4, 1, 1)).fit()
                 forecast = arima_model.forecast(steps=1)
                 mape = mean_absolute_percentage_error(grouped_data['CANTIDAD'], arima_model.predict())
@@ -87,9 +87,9 @@ if uploaded_file is not None:
 
                 st.write(f"**Proyección del próximo mes:** {forecast.values[0]:.2f} ± ({conf_interval.iloc[0, 0]:.2f}, {conf_interval.iloc[0, 1]:.2f})")
                 st.write(f"**MAPE del modelo:** {mape:.2%}")
-                
+
                 # Mostrar la proyección en el gráfico
-                future_dates = [x.max() + 1]  # Ajustar para meses
+                future_dates = [x.max() + 1]  # Suponiendo meses en orden
                 ax.plot(future_dates, forecast.values, label="Proyección ARIMA", linestyle='--', color='red')
                 ax.fill_between(future_dates, conf_interval.iloc[:, 0], conf_interval.iloc[:, 1], color='red', alpha=0.3)
 
@@ -98,25 +98,31 @@ if uploaded_file is not None:
 
         st.pyplot(fig)
 
-# Sección de Preguntas Frecuentes y Contacto
-st.markdown("---")
-st.markdown("### Preguntas Frecuentes")
-with st.expander("¿Qué método utiliza esta aplicación para la proyección de demanda?"):
-    st.write("Utilizamos el modelo ARIMA, adecuado para series temporales y datos históricos.")
-with st.expander("¿Por qué se usa ARIMA para la proyección de demanda?"):
-    st.write("ARIMA permite capturar tendencias en datos históricos y generar proyecciones confiables.")
-with st.expander("¿A quién va enfocada esta aplicación?"):
-    st.write("Está diseñada para PYMEs en el sector de áridos que necesitan mejorar la precisión de su planificación de demanda.")
-with st.expander("¿Cómo puedo aprovechar al máximo esta herramienta?"):
-    st.write("Sigue subiendo tus datos históricos actualizados para mejorar la precisión de las proyecciones.")
-with st.expander("¿Qué datos son necesarios en el archivo de Excel?"):
-    st.write("El archivo debe contener columnas de fecha, sector, material, y cantidad para un análisis óptimo.")
+# FAQ y sección de contacto estilizadas
+st.markdown("<hr>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #F97316;'>Preguntas Frecuentes</h3>", unsafe_allow_html=True)
 
-st.markdown("### Contáctanos")
-st.write("Si tienes preguntas adicionales, puedes contactarnos a través de:")
-st.write("- **Instagram**: [Dante.Colpo](https://instagram.com/Dante.Colpo)")
-st.write("- **Correo Electrónico**: [dante.colpo@gmail.com](mailto:dante.colpo@gmail.com)")
+faq_items = [
+    "¿Qué método utiliza esta aplicación para la proyección de demanda?",
+    "¿Por qué se usa ARIMA para la proyección de demanda?",
+    "¿A quién va enfocada esta aplicación?",
+    "¿Cómo puedo aprovechar al máximo esta herramienta?",
+    "¿Qué datos son necesarios en el archivo de Excel?"
+]
+for question in faq_items:
+    with st.expander(question):
+        st.write("Respuesta pendiente")
 
+# Sección de contacto con iconos
+st.markdown("<h3 style='text-align: center; color: #F97316;'>Contáctanos</h3>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style='text-align: center;'>
+        <p>📷 Instagram: <a href='https://instagram.com/Dante.Colpo' target='_blank'>@Dante.Colpo</a></p>
+        <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com'>dante.colpo@gmail.com</a></p>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 
-
-
+st.markdown("<style> footer {visibility: hidden;} </style>", unsafe_allow_html=True)
