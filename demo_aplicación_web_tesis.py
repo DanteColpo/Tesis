@@ -16,7 +16,8 @@ st.title('Proyección de Demanda de Áridos')
 st.write("Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.")
 
 # Cargar el archivo de Excel
-uploaded_file = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
+uploaded_file = st.file_uploader("Sube el archivo Excel", type=["xlsx"], label_visibility="collapsed")
+st.markdown("<label for='file-uploader' style='color: white;'>Subir archivo</label>", unsafe_allow_html=True)
 
 # Diccionarios de meses en español y orden para visualización
 meses_ordenados = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
@@ -98,10 +99,29 @@ if uploaded_file is not None:
 
         st.pyplot(fig)
 
-# Pie de página
+# Pie de página con Preguntas Frecuentes y Contacto
 st.markdown("___")
-st.markdown("**Nota:** Esta herramienta proporciona una proyección de demanda basada en datos históricos y modelos estadísticos. Los resultados son aproximados y deben interpretarse con precaución.")
-st.markdown("¿Necesitas ayuda? Consulta nuestras [Preguntas Frecuentes](#) o [Contáctanos](#).")
+st.markdown("### Preguntas Frecuentes")
+with st.expander("¿Qué método utiliza esta aplicación para la proyección de demanda?"):
+    st.write("Utilizamos el modelo ARIMA, que es adecuado para series temporales con tendencias y estacionalidad.")
+
+with st.expander("¿Por qué se usa ARIMA para la proyección de demanda?"):
+    st.write("El modelo ARIMA es popular en series temporales debido a su capacidad para capturar patrones en los datos, lo que permite realizar proyecciones precisas en el corto plazo.")
+
+with st.expander("¿A quién va enfocada esta aplicación?"):
+    st.write("Esta aplicación está diseñada para pequeñas y medianas empresas (PYMES) que buscan una herramienta simple para proyectar la demanda de sus productos.")
+
+with st.expander("¿Cómo puedo aprovechar al máximo esta herramienta?"):
+    st.write("Sube un archivo con datos organizados de manera clara, selecciona el material y el período deseado, y utiliza la opción de proyección para obtener estimaciones futuras.")
+
+with st.expander("¿Qué datos son necesarios en el archivo de Excel?"):
+    st.write("El archivo debe contener columnas como FECHA, MATERIAL, CANTIDAD, SECTOR, entre otras, para un análisis preciso.")
+
+st.markdown("### Contáctanos")
+st.write("Si tienes preguntas adicionales, puedes contactarnos a través de:")
+st.write("- **Instagram:** [Dante.Colpo](https://instagram.com/dante.colpo)")
+st.write("- **Correo Electrónico:** [dante.colpo@gmail.com](mailto:dante.colpo@gmail.com)")
+
 
 
 
