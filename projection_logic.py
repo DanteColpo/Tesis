@@ -10,6 +10,9 @@ import itertools
 # Configuración inicial de la página
 st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
 
+# Definir alpha globalmente para la suavización exponencial
+alpha = 0.9
+
 # Función para cargar y procesar el archivo
 def upload_and_process_file():
     uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
@@ -45,7 +48,6 @@ def show_projection(data):
 
     # Proyección para cada tipo de material
     if 'Material' in data_privado.columns:
-        alpha = 0.9  # Definir alpha antes de usarlo
         for product_type in data_privado['Material'].unique():
             # Filtrar los datos por tipo de material
             data_producto = data_privado[data_privado['Material'] == product_type]
@@ -114,6 +116,9 @@ def show_projection(data):
     best_mape = float("inf")
     best_order = None
     best_model = None
+    p = range(3, 6)
+    d = [1]
+    q = range(0, 4)
     for combination in itertools.product(p, d, q):
         try:
             model = ARIMA(train_total, order=combination).fit()
@@ -143,3 +148,4 @@ def show_projection(data):
         hovermode="x"
     )
     st.plotly_chart(fig)
+
