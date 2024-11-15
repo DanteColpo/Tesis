@@ -10,7 +10,7 @@ from datetime import datetime
 st.set_page_config(page_title="Proyekta+", layout="centered", page_icon="📈")
 
 # Insertar el logo y título de la aplicación
-st.image("Proyekta_logo.png", width=200)  # Asegúrate de que el nombre del archivo del logo coincida
+st.image("Logo_ProyeKTA+.png", width=200)  # Asegúrate de que el nombre del archivo del logo coincida
 st.title('Proyekta+')
 st.subheader('Proyecta tu éxito')
 
