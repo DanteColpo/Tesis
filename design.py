@@ -42,7 +42,7 @@ def show_faq():
         with st.expander(question):
             st.markdown(f"<p style='text-align: justify;'>{answer}</p>", unsafe_allow_html=True)
             if question == "¿Qué datos son necesarios en el archivo de Excel?":
-                st.image("Ejemplo_Datos_Proyeccion.xlsx.png", caption="Ejemplo de estructura de archivo Excel para la proyección")
+                st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección")
 
 # Función para mostrar la información de contacto
 def show_contact_info():
