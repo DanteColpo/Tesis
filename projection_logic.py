@@ -58,7 +58,7 @@ def show_projection(data):
         best_model = None
 
         # Rango limitado de p, d, q
-        p = range(3, 6)
+        p = range(1, 6)
         d = [1]
         q = range(0, 4)
 
