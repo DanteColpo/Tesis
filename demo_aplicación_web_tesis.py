@@ -7,13 +7,40 @@ from sklearn.metrics import mean_absolute_percentage_error
 from datetime import datetime
 
 # Configuración de la página
-st.set_page_config(page_title="Proyekta+", page_icon="📊", layout="centered")
+st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
 
-# Insertar el logo de la aplicación en el centro, con tamaño ajustado
+# Estilo CSS personalizado para justificación y colores profesionales
+st.markdown("""
+    <style>
+        /* Justificación de texto y colores */
+        .justificado {
+            text-align: justify;
+        }
+        .titulo {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2C3E50; /* Azul oscuro */
+            text-align: center;
+        }
+        .subtitulo {
+            font-size: 1.5em;
+            color: #7F8C8D; /* Gris */
+            text-align: center;
+        }
+        .preguntas-frecuentes, .contacto-titulo {
+            color: #2C3E50; /* Azul oscuro */
+            text-align: center;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Insertar el logo y título de la aplicación
 st.image("Logo_ProyeKTA+.png", width=300)  # Asegúrate de que el archivo del logo esté en el mismo directorio
+st.markdown("<div class='titulo'>ProyeKTA+</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitulo'>Proyecta tu éxito</div>", unsafe_allow_html=True)
 
 # Instrucciones rápidas para el usuario
-st.markdown("<h2 style='text-align: center; color: #F97316;'>Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.</h2>", unsafe_allow_html=True)
+st.markdown("<p class='justificado' style='color: #34495E;'>Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.</p>", unsafe_allow_html=True)
 
 # Cargar el archivo de Excel
 uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
@@ -98,10 +125,8 @@ if uploaded_file is not None:
 
         st.pyplot(fig)
 
-# FAQ y sección de contacto estilizadas
-st.markdown("<hr>", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align: center; color: #F97316;'>Preguntas Frecuentes</h3>", unsafe_allow_html=True)
-
+# Preguntas Frecuentes
+st.markdown("<hr><h2 class='preguntas-frecuentes'>Preguntas Frecuentes</h2>", unsafe_allow_html=True)
 faq_items = [
     "¿Qué método utiliza esta aplicación para la proyección de demanda?",
     "¿Por qué se usa ARIMA para la proyección de demanda?",
@@ -111,18 +136,16 @@ faq_items = [
 ]
 for question in faq_items:
     with st.expander(question):
-        st.write("Respuesta pendiente")
+        st.write("Respuesta pendiente")  # Placeholder para respuestas
 
-# Sección de contacto con iconos
-st.markdown("<h3 style='text-align: center; color: #F97316;'>Contáctanos</h3>", unsafe_allow_html=True)
-st.markdown(
-    """
+# Sección de contacto estilizada
+st.markdown("<hr><h2 class='contacto-titulo'>Contáctanos</h2>", unsafe_allow_html=True)
+st.markdown("""
     <div style='text-align: center;'>
-        <p>📷 Instagram: <a href='https://instagram.com/Dante.Colpo' target='_blank'>@Dante.Colpo</a></p>
-        <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com'>dante.colpo@gmail.com</a></p>
+        <p>📸 Instagram: <a href="https://instagram.com/Dante.Colpo" target="_blank">@Dante.Colpo</a></p>
+        <p>✉️ Correo Electrónico: <a href="mailto:dante.colpo@gmail.com">dante.colpo@gmail.com</a></p>
     </div>
-    """, 
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
+# Ocultar pie de página de Streamlit
 st.markdown("<style> footer {visibility: hidden;} </style>", unsafe_allow_html=True)
