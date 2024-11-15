@@ -45,13 +45,13 @@ def show_projection(data):
 
     # Proyección para cada tipo de material
     if 'Material' in data_privado.columns:
+        alpha = 0.9  # Definir alpha antes de usarlo
         for product_type in data_privado['Material'].unique():
             # Filtrar los datos por tipo de material
             data_producto = data_privado[data_privado['Material'] == product_type]
             data_producto = data_producto[['CANTIDAD']].resample('M').sum()
 
             # Suavización exponencial
-            alpha = 0.9
             data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
 
             # División en conjunto de entrenamiento y prueba
@@ -143,4 +143,3 @@ def show_projection(data):
         hovermode="x"
     )
     st.plotly_chart(fig)
-
