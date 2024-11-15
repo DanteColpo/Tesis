@@ -110,4 +110,4 @@ def show_projection(data):
         # Agregar una breve explicación sobre cómo interpretar el error promedio
         st.write("Este modelo tiene un nivel de error promedio que indica qué tan cerca están los valores pronosticados de los valores reales históricos.")
         st.write("**Interpretación del gráfico:** Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
-        
+
