@@ -139,7 +139,7 @@ for question in faq_items:
         st.write("Respuesta pendiente")  # Placeholder para respuestas
 
 # Sección de contacto estilizada
-st.markdown("<hr><h2 class='contacto-titulo'>Contáctanos</h2>", unsafe_allow_html=True)
+st.markdown("<hr><h2 class='contacto-titulo'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h2>", unsafe_allow_html=True)
 st.markdown("""
     <div style='text-align: center;'>
         <p>📸 Instagram: <a href="https://instagram.com/Dante.Colpo" target="_blank">@Dante.Colpo</a></p>
