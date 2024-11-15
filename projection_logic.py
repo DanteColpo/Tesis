@@ -53,6 +53,11 @@ def show_projection(data):
         forecast = model.forecast(steps=forecast_steps)
         forecast_dates = pd.date_range(train.index[-1] + pd.DateOffset(months=1), periods=forecast_steps, freq='M')
 
+        # Cálculo del MAPE y conversión a nivel de precisión
+        actual = data_privado['CANTIDAD_SUAVIZADA'][-3:]
+        mape = mean_absolute_percentage_error(actual, forecast[:3])
+        nivel_precision = 100 - mape * 100  # Convertir MAPE en precisión
+
         # Visualización de resultados
         fig, ax = plt.subplots()
         ax.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
@@ -62,8 +67,8 @@ def show_projection(data):
         ax.legend()
 
         # Formato de las fechas en el eje X
-        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m'))  # Solo muestra año y mes
-        plt.xticks(rotation=45)  # Rota las etiquetas de fechas para mayor claridad
+        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m'))
+        plt.xticks(rotation=45)
 
         st.pyplot(fig)
 
@@ -74,3 +79,9 @@ def show_projection(data):
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
+
+        # Mostrar nivel de precisión y explicación
+        st.write(f"### Precisión del Pronóstico: {nivel_precision:.2f}%")
+        st.write("Este modelo tiene un nivel de precisión que indica qué tan cercanos están los valores pronosticados con respecto a los valores reales históricos.")
+        st.write("**Interpretación del gráfico:** Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
+        
