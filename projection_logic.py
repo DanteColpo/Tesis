@@ -7,9 +7,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
 import itertools
 
-# Configuración inicial de la página
-st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
-
 # Definir alpha globalmente para la suavización exponencial
 alpha = 0.9
 
@@ -53,45 +50,49 @@ def show_projection(data):
             data_producto = data_privado[data_privado['MATERIAL'] == product_type]
             data_producto = data_producto[['CANTIDAD']].resample('ME').sum()
 
-            # Suavización exponencial
-            data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+            # Asegurarse de que los datos están en una sola dimensión
+            if data_producto['CANTIDAD'].ndim == 1:
+                # Suavización exponencial
+                data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
 
-            # División en conjunto de entrenamiento y prueba
-            train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
-            test = data_producto['CANTIDAD_SUAVIZADA'].iloc[-3:]
+                # División en conjunto de entrenamiento y prueba
+                train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
+                test = data_producto['CANTIDAD_SUAVIZADA'].iloc[-3:]
 
-            # Optimización de parámetros ARIMA en un rango limitado
-            best_mape = float("inf")
-            best_order = None
-            best_model = None
+                # Optimización de parámetros ARIMA en un rango limitado
+                best_mape = float("inf")
+                best_order = None
+                best_model = None
 
-            # Búsqueda de los mejores valores de p, d, q
-            p = range(3, 6)
-            d = [1]
-            q = range(0, 4)
+                # Búsqueda de los mejores valores de p, d, q
+                p = range(3, 6)
+                d = [1]
+                q = range(0, 4)
 
-            for combination in itertools.product(p, d, q):
-                try:
-                    model = ARIMA(train, order=combination).fit()
-                    forecast = model.forecast(steps=3)
-                    mape = mean_absolute_percentage_error(test, forecast)
+                for combination in itertools.product(p, d, q):
+                    try:
+                        model = ARIMA(train, order=combination).fit()
+                        forecast = model.forecast(steps=3)
+                        mape = mean_absolute_percentage_error(test, forecast)
 
-                    if mape < best_mape:
-                        best_mape = mape
-                        best_order = combination
-                        best_model = model
-                except Exception as e:
-                    continue
+                        if mape < best_mape:
+                            best_mape = mape
+                            best_order = combination
+                            best_model = model
+                    except Exception as e:
+                        continue
 
-            # Generar proyección para los próximos 3 meses
-            forecast = best_model.forecast(steps=3)
-            forecast_dates = pd.date_range(test.index[-1], periods=4, freq='ME')[1:]
+                # Generar proyección para los próximos 3 meses
+                forecast = best_model.forecast(steps=3)
+                forecast_dates = pd.date_range(test.index[-1], periods=4, freq='ME')[1:]
 
-            # Guardar los resultados en el diccionario
-            forecast_results[product_type] = {
-                "Fecha": forecast_dates.strftime('%B %Y'),
-                "Proyección (m³)": forecast.round().astype(int)
-            }
+                # Guardar los resultados en el diccionario
+                forecast_results[product_type] = {
+                    "Fecha": forecast_dates.strftime('%B %Y'),
+                    "Proyección (m³)": forecast.round().astype(int)
+                }
+            else:
+                st.warning(f"Los datos para {product_type} no son unidimensionales y se omitirán en la proyección.")
 
         # Mostrar tabla desglosada por tipo de material
         st.write("### Proyección Desglosada por Tipo de Material")
@@ -148,9 +149,3 @@ def show_projection(data):
         hovermode="x"
     )
     st.plotly_chart(fig)
-
-# Ejecución principal
-data = upload_and_process_file()
-if data is not None:
-    show_projection(data)
-
