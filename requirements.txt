@@ -5,3 +5,5 @@ matplotlib
 statsmodels
 scikit-learn
 pmdarima
+plotly
+openpyxl
