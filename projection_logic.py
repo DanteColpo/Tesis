@@ -48,51 +48,52 @@ def show_projection(data):
         for product_type in data_privado['MATERIAL'].unique():
             # Filtrar los datos por tipo de material
             data_producto = data_privado[data_privado['MATERIAL'] == product_type]
-            data_producto = data_producto[['CANTIDAD']].resample('ME').sum()
+            data_producto = data_producto[['CANTIDAD']].resample('M').sum()
 
-            # Asegurarse de que los datos están en una sola dimensión
-            if data_producto['CANTIDAD'].ndim == 1:
-                # Suavización exponencial
-                data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+            # Verificar que `data_producto['CANTIDAD']` sea unidimensional
+            if data_producto['CANTIDAD'].empty or data_producto['CANTIDAD'].ndim != 1:
+                st.warning(f"Los datos para {product_type} no son adecuados para la proyección y se omitirán.")
+                continue
 
-                # División en conjunto de entrenamiento y prueba
-                train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
-                test = data_producto['CANTIDAD_SUAVIZADA'].iloc[-3:]
+            # Suavización exponencial
+            data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
 
-                # Optimización de parámetros ARIMA en un rango limitado
-                best_mape = float("inf")
-                best_order = None
-                best_model = None
+            # División en conjunto de entrenamiento y prueba
+            train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
+            test = data_producto['CANTIDAD_SUAVIZADA'].iloc[-3:]
 
-                # Búsqueda de los mejores valores de p, d, q
-                p = range(3, 6)
-                d = [1]
-                q = range(0, 4)
+            # Optimización de parámetros ARIMA en un rango limitado
+            best_mape = float("inf")
+            best_order = None
+            best_model = None
 
-                for combination in itertools.product(p, d, q):
-                    try:
-                        model = ARIMA(train, order=combination).fit()
-                        forecast = model.forecast(steps=3)
-                        mape = mean_absolute_percentage_error(test, forecast)
+            # Búsqueda de los mejores valores de p, d, q
+            p = range(3, 6)
+            d = [1]
+            q = range(0, 4)
 
-                        if mape < best_mape:
-                            best_mape = mape
-                            best_order = combination
-                            best_model = model
-                    except Exception as e:
-                        continue
+            for combination in itertools.product(p, d, q):
+                try:
+                    model = ARIMA(train, order=combination).fit()
+                    forecast = model.forecast(steps=3)
+                    mape = mean_absolute_percentage_error(test, forecast)
 
-                # Generar proyección para los próximos 3 meses
-                forecast = best_model.forecast(steps=3)
-                forecast_dates = pd.date_range(test.index[-1], periods=4, freq='ME')[1:]
+                    if mape < best_mape:
+                        best_mape = mape
+                        best_order = combination
+                        best_model = model
+                except Exception as e:
+                    continue
 
-                # Guardar los resultados en el diccionario
-                forecast_results[product_type] = {
-                    "Fecha": forecast_dates.strftime('%B %Y'),
-                    "Proyección (m³)": forecast.round().astype(int)
-                }
-            else:
-                st.warning(f"Los datos para {product_type} no son unidimensionales y se omitirán en la proyección.")
+            # Generar proyección para los próximos 3 meses
+            forecast = best_model.forecast(steps=3)
+            forecast_dates = pd.date_range(test.index[-1], periods=4, freq='M')[1:]
+
+            # Guardar los resultados en el diccionario
+            forecast_results[product_type] = {
+                "Fecha": forecast_dates.strftime('%B %Y'),
+                "Proyección (m³)": forecast.round().astype(int)
+            }
 
         # Mostrar tabla desglosada por tipo de material
         st.write("### Proyección Desglosada por Tipo de Material")
@@ -108,7 +109,7 @@ def show_projection(data):
 
     # Gráfico y proyección para el total
     st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
-    data_privado_total = data_privado[['CANTIDAD']].resample('ME').sum()
+    data_privado_total = data_privado[['CANTIDAD']].resample('M').sum()
     data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
     train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
     test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
@@ -135,7 +136,7 @@ def show_projection(data):
 
     # Proyección con el mejor modelo para el total
     forecast = best_model.forecast(steps=3)
-    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='ME')[1:]
+    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='M')[1:]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
