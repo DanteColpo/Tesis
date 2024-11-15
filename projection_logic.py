@@ -6,6 +6,18 @@ from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 import matplotlib.pyplot as plt
 import streamlit as st
 
+def upload_and_process_file():
+    uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
+    if uploaded_file is not None:
+        data = pd.read_excel(uploaded_file)
+        if data.empty:
+            st.warning("El archivo está vacío o no tiene datos válidos.")
+            return None
+        else:
+            st.success("Archivo cargado exitosamente.")
+            return data
+    return None
+
 def show_projection(data):
     # Convertir la columna FECHA a tipo datetime y establecerla como índice
     data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
