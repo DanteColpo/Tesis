@@ -50,16 +50,17 @@ def show_projection(data):
             data_producto = data_privado[data_privado['MATERIAL'] == product_type]
             data_producto = data_producto[['CANTIDAD']].resample('M').sum()
 
-            # Verificar que no haya valores NaN y que `data_producto['CANTIDAD']` sea unidimensional
-            if data_producto['CANTIDAD'].isnull().all() or data_producto['CANTIDAD'].ndim != 1:
-                st.warning(f"Los datos para {product_type} no son adecuados para la proyección y se omitirán.")
+            # Verificar que el material tenga suficientes datos
+            if data_producto['CANTIDAD'].count() < 6:
+                st.warning(f"El material '{product_type}' tiene datos insuficientes para una proyección fiable y se omitirá.")
                 continue
 
-            # Rellenar valores NaN con ceros para asegurar la unidimensionalidad
-            data_producto['CANTIDAD'] = data_producto['CANTIDAD'].fillna(0)
-
             # Suavización exponencial
-            data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+            try:
+                data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+            except Exception as e:
+                st.warning(f"Error al aplicar suavización en '{product_type}': {str(e)}")
+                continue
 
             # División en conjunto de entrenamiento y prueba
             train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
@@ -71,7 +72,7 @@ def show_projection(data):
             best_model = None
 
             # Búsqueda de los mejores valores de p, d, q
-            p = range(3, 6)
+            p = range(1, 6)
             d = [1]
             q = range(0, 4)
 
@@ -90,13 +91,12 @@ def show_projection(data):
 
             # Generar proyección para los próximos 3 meses
             forecast = best_model.forecast(steps=3)
-            forecast_dates = pd.date_range(data_producto.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
+            forecast_dates = pd.date_range(test.index[-1], periods=4, freq='M')[1:]
 
             # Guardar los resultados en el diccionario
             forecast_results[product_type] = {
                 "Fecha": forecast_dates.strftime('%B %Y'),
-                "Proyección (m³)": forecast.round().astype(int),
-                "MAPE": best_mape
+                "Proyección (m³)": forecast.round().astype(int)
             }
 
         # Mostrar tabla desglosada por tipo de material
@@ -105,8 +105,7 @@ def show_projection(data):
             st.write(f"#### {product_type}")
             forecast_table = pd.DataFrame({
                 "Fecha": results["Fecha"],
-                "Proyección ARIMA (m³)": results["Proyección (m³)"],
-                "Error Promedio Asociado (MAPE)": f"{results['MAPE']:.2%}"
+                "Proyección ARIMA (m³)": results["Proyección (m³)"]
             })
             st.write(forecast_table)
     else:
@@ -115,7 +114,7 @@ def show_projection(data):
     # Gráfico y proyección para el total
     st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
     data_privado_total = data_privado[['CANTIDAD']].resample('M').sum()
-    data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD'].fillna(0)).fit(smoothing_level=alpha, optimized=False).fittedvalues
+    data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
     train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
     test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
 
@@ -141,7 +140,7 @@ def show_projection(data):
 
     # Proyección con el mejor modelo para el total
     forecast = best_model.forecast(steps=3)
-    forecast_dates = pd.date_range(data_privado_total.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
+    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='M')[1:]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
@@ -155,8 +154,3 @@ def show_projection(data):
         hovermode="x"
     )
     st.plotly_chart(fig)
-
-    # Mostrar MAPE del total
-    st.write("### Error Promedio del Pronóstico")
-    st.write(f"Error Promedio Asociado (MAPE): {best_mape:.2%}")
-
