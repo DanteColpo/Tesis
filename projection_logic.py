@@ -70,7 +70,7 @@ def show_projection(data):
 
         # Pronóstico final hacia el futuro
         model = ARIMA(train, order=best_order).fit()
-        forecast_steps = 1  # Proyecta los siguientes 4 meses, incluyendo septiembre
+        forecast_steps = 3  # Proyecta los siguientes 4 meses, incluyendo septiembre
         forecast = model.forecast(steps=forecast_steps)
         forecast_dates = pd.date_range(train.index[-1] + pd.DateOffset(months=1), periods=forecast_steps, freq='M')
 
