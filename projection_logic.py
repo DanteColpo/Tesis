@@ -50,10 +50,13 @@ def show_projection(data):
             data_producto = data_privado[data_privado['MATERIAL'] == product_type]
             data_producto = data_producto[['CANTIDAD']].resample('M').sum()
 
-            # Verificar que `data_producto['CANTIDAD']` sea unidimensional
-            if data_producto['CANTIDAD'].empty or data_producto['CANTIDAD'].ndim != 1:
+            # Verificar que no haya valores NaN y que `data_producto['CANTIDAD']` sea unidimensional
+            if data_producto['CANTIDAD'].isnull().all() or data_producto['CANTIDAD'].ndim != 1:
                 st.warning(f"Los datos para {product_type} no son adecuados para la proyección y se omitirán.")
                 continue
+
+            # Rellenar valores NaN con ceros para asegurar la unidimensionalidad
+            data_producto['CANTIDAD'] = data_producto['CANTIDAD'].fillna(0)
 
             # Suavización exponencial
             data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
@@ -112,7 +115,7 @@ def show_projection(data):
     # Gráfico y proyección para el total
     st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
     data_privado_total = data_privado[['CANTIDAD']].resample('M').sum()
-    data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+    data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD'].fillna(0)).fit(smoothing_level=alpha, optimized=False).fittedvalues
     train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
     test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
 
@@ -156,6 +159,4 @@ def show_projection(data):
     # Mostrar MAPE del total
     st.write("### Error Promedio del Pronóstico")
     st.write(f"Error Promedio Asociado (MAPE): {best_mape:.2%}")
-
-    st.plotly_chart(fig)
 
