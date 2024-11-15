@@ -32,21 +32,22 @@ def show_projection(data):
     data = data.dropna(subset=['FECHA'])
     data = data.set_index('FECHA')
 
-    # Filtrar solo los datos del sector privado
+    # Filtrar solo los datos del sector privado, manteniendo 'Material'
     data_privado = data[data['SECTOR'] == 'PRIVADO']
 
     # Verificación de que hay suficientes datos
     if data_privado.empty or len(data_privado) < 12:
         st.warning("No hay suficientes datos para el sector PRIVADO después del resampleo.")
         return
-    else:
-        # Crear un diccionario para almacenar las proyecciones de cada tipo de producto
-        forecast_results = {}
 
-        # Proyección para cada tipo de material
-        for product_type in data_privado['TIPO_PRODUCTO'].unique():
-            # Filtrar los datos por tipo de producto
-            data_producto = data_privado[data_privado['TIPO_PRODUCTO'] == product_type]
+    # Crear un diccionario para almacenar las proyecciones de cada tipo de material
+    forecast_results = {}
+
+    # Proyección para cada tipo de material
+    if 'Material' in data_privado.columns:
+        for product_type in data_privado['Material'].unique():
+            # Filtrar los datos por tipo de material
+            data_producto = data_privado[data_privado['Material'] == product_type]
             data_producto = data_producto[['CANTIDAD']].resample('M').sum()
 
             # Suavización exponencial
@@ -90,48 +91,7 @@ def show_projection(data):
                 "Proyección (m³)": forecast.round().astype(int)
             }
 
-        # Gráfico interactivo con plotly para el total
-        st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
-        data_privado = data_privado[['CANTIDAD']].resample('M').sum()
-        data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
-        train = data_privado['CANTIDAD_SUAVIZADA'].iloc[:-3]
-        test = data_privado['CANTIDAD_SUAVIZADA'].iloc[-3:]
-
-        # Optimización automática para el total
-        best_mape = float("inf")
-        best_order = None
-        best_model = None
-        for combination in itertools.product(p, d, q):
-            try:
-                model = ARIMA(train, order=combination).fit()
-                forecast = model.forecast(steps=3)
-                mape = mean_absolute_percentage_error(test, forecast)
-
-                if mape < best_mape:
-                    best_mape = mape
-                    best_order = combination
-                    best_model = model
-            except Exception as e:
-                continue
-
-        # Proyección con el mejor modelo para el total
-        forecast = best_model.forecast(steps=3)
-        forecast_dates = pd.date_range(test.index[-1], periods=4, freq='M')[1:]
-
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=train.index, y=train, mode='lines', name='Datos de Entrenamiento Suavizados'))
-        fig.add_trace(go.Scatter(x=test.index, y=test, mode='lines', name='Datos Reales Suavizados', line=dict(color='orange')))
-        fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers', name=f'Pronóstico ARIMA{best_order}', line=dict(dash='dash', color='green')))
-        fig.update_layout(
-            title=f'Proyección ARIMA{best_order} sobre Datos Suavizados (Total)',
-            xaxis_title='Fecha',
-            yaxis_title='Cantidad de Material (m³)',
-            xaxis=dict(tickformat="%b %Y"),
-            hovermode="x"
-        )
-        st.plotly_chart(fig)
-
-        # Tabla desglosada por tipo de material
+        # Mostrar tabla desglosada por tipo de material
         st.write("### Proyección Desglosada por Tipo de Material")
         for product_type, results in forecast_results.items():
             st.write(f"#### {product_type}")
@@ -140,3 +100,47 @@ def show_projection(data):
                 "Proyección ARIMA (m³)": results["Proyección (m³)"]
             })
             st.write(forecast_table)
+    else:
+        st.warning("No se encontró la columna 'Material' en los datos. Solo se mostrará la proyección total.")
+
+    # Gráfico y proyección para el total
+    st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
+    data_privado_total = data_privado[['CANTIDAD']].resample('M').sum()
+    data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+    train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
+    test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
+
+    # Optimización automática para el total
+    best_mape = float("inf")
+    best_order = None
+    best_model = None
+    for combination in itertools.product(p, d, q):
+        try:
+            model = ARIMA(train_total, order=combination).fit()
+            forecast = model.forecast(steps=3)
+            mape = mean_absolute_percentage_error(test_total, forecast)
+
+            if mape < best_mape:
+                best_mape = mape
+                best_order = combination
+                best_model = model
+        except Exception as e:
+            continue
+
+    # Proyección con el mejor modelo para el total
+    forecast = best_model.forecast(steps=3)
+    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='M')[1:]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
+    fig.add_trace(go.Scatter(x=test_total.index, y=test_total, mode='lines', name='Datos Reales Suavizados', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers', name=f'Pronóstico ARIMA{best_order}', line=dict(dash='dash', color='green')))
+    fig.update_layout(
+        title=f'Proyección ARIMA{best_order} sobre Datos Suavizados (Total)',
+        xaxis_title='Fecha',
+        yaxis_title='Cantidad de Material (m³)',
+        xaxis=dict(tickformat="%b %Y"),
+        hovermode="x"
+    )
+    st.plotly_chart(fig)
+
