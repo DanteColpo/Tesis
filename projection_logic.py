@@ -47,11 +47,11 @@ def show_projection(data):
     forecast_results = {}
 
     # Proyección para cada tipo de material
-    if 'Material' in data_privado.columns:
-        for product_type in data_privado['Material'].unique():
+    if 'MATERIAL' in data_privado.columns:
+        for product_type in data_privado['MATERIAL'].unique():
             # Filtrar los datos por tipo de material
-            data_producto = data_privado[data_privado['Material'] == product_type]
-            data_producto = data_producto[['CANTIDAD']].resample('M').sum()
+            data_producto = data_privado[data_privado['MATERIAL'] == product_type]
+            data_producto = data_producto[['CANTIDAD']].resample('ME').sum()
 
             # Suavización exponencial
             data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
@@ -85,7 +85,7 @@ def show_projection(data):
 
             # Generar proyección para los próximos 3 meses
             forecast = best_model.forecast(steps=3)
-            forecast_dates = pd.date_range(test.index[-1], periods=4, freq='M')[1:]
+            forecast_dates = pd.date_range(test.index[-1], periods=4, freq='ME')[1:]
 
             # Guardar los resultados en el diccionario
             forecast_results[product_type] = {
@@ -107,7 +107,7 @@ def show_projection(data):
 
     # Gráfico y proyección para el total
     st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
-    data_privado_total = data_privado[['CANTIDAD']].resample('M').sum()
+    data_privado_total = data_privado[['CANTIDAD']].resample('ME').sum()
     data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
     train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
     test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
@@ -134,7 +134,7 @@ def show_projection(data):
 
     # Proyección con el mejor modelo para el total
     forecast = best_model.forecast(steps=3)
-    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='M')[1:]
+    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='ME')[1:]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
