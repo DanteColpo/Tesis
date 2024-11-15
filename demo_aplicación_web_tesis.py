@@ -15,4 +15,3 @@ if data is not None:
 # Mostrar secciones adicionales
 show_faq()
 show_contact_info()
-
