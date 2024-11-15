@@ -50,13 +50,17 @@ def show_projection(data):
             data_producto = data_privado[data_privado['MATERIAL'] == product_type]
             data_producto = data_producto[['CANTIDAD']].resample('M').sum()
 
-            # Verificar que `data_producto['CANTIDAD']` sea unidimensional
-            if data_producto['CANTIDAD'].empty or data_producto['CANTIDAD'].ndim != 1:
-                st.warning(f"Los datos para {product_type} no son adecuados para la proyección y se omitirán.")
+            # Verificar que el material tenga suficientes datos
+            if data_producto['CANTIDAD'].count() < 6:
+                st.warning(f"El material '{product_type}' tiene datos insuficientes para una proyección fiable y se omitirá.")
                 continue
 
             # Suavización exponencial
-            data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+            try:
+                data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+            except Exception as e:
+                st.warning(f"Error al aplicar suavización en '{product_type}': {str(e)}")
+                continue
 
             # División en conjunto de entrenamiento y prueba
             train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
@@ -150,3 +154,4 @@ def show_projection(data):
         hovermode="x"
     )
     st.plotly_chart(fig)
+
