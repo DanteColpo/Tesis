@@ -18,26 +18,6 @@ def upload_and_process_file():
             return data
     return None
 
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.holtwinters import SimpleExpSmoothing
-from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
-import matplotlib.pyplot as plt
-import streamlit as st
-
-def upload_and_process_file():
-    uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
-    if uploaded_file is not None:
-        data = pd.read_excel(uploaded_file)
-        if data.empty:
-            st.warning("El archivo está vacío o no tiene datos válidos.")
-            return None
-        else:
-            st.success("Archivo cargado exitosamente.")
-            return data
-    return None
-
 def show_projection(data):
     st.write("Proyección ARIMA para el Sector Privado")
 
@@ -81,6 +61,10 @@ def show_projection(data):
         ax.set_ylabel('Cantidad de Material')
         ax.legend()
 
+        # Formato de las fechas en el eje X
+        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m'))  # Solo muestra año y mes
+        plt.xticks(rotation=45)  # Rota las etiquetas de fechas para mayor claridad
+
         st.pyplot(fig)
 
         # Mostrar resultados en tabla con formato de mes y año
@@ -90,5 +74,3 @@ def show_projection(data):
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
-
-
