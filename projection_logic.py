@@ -119,38 +119,42 @@ def show_projection(data):
     test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
 
     # Optimización automática para el total
-    best_mape = float("inf")
-    best_order = None
-    best_model = None
+    best_mape_total = float("inf")
+    best_order_total = None
+    best_model_total = None
     p = range(3, 6)
     d = [1]
     q = range(0, 4)
     for combination in itertools.product(p, d, q):
         try:
-            model = ARIMA(train_total, order=combination).fit()
-            forecast = model.forecast(steps=3)
-            mape = mean_absolute_percentage_error(test_total, forecast)
+            model_total = ARIMA(train_total, order=combination).fit()
+            forecast_total = model_total.forecast(steps=3)
+            mape_total = mean_absolute_percentage_error(test_total, forecast_total)
 
-            if mape < best_mape:
-                best_mape = mape
-                best_order = combination
-                best_model = model
+            if mape_total < best_mape_total:
+                best_mape_total = mape_total
+                best_order_total = combination
+                best_model_total = model_total
         except Exception as e:
             continue
 
     # Proyección con el mejor modelo para el total
-    forecast = best_model.forecast(steps=3)
-    forecast_dates = pd.date_range(test_total.index[-1], periods=4, freq='M')[1:]
+    forecast_total = best_model_total.forecast(steps=3)
+    forecast_dates_total = pd.date_range(test_total.index[-1], periods=4, freq='M')[1:]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
     fig.add_trace(go.Scatter(x=test_total.index, y=test_total, mode='lines', name='Datos Reales Suavizados', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers', name=f'Pronóstico ARIMA{best_order}', line=dict(dash='dash', color='green')))
+    fig.add_trace(go.Scatter(x=forecast_dates_total, y=forecast_total, mode='lines+markers', name=f'Pronóstico ARIMA{best_order_total}', line=dict(dash='dash', color='green')))
     fig.update_layout(
-        title=f'Proyección ARIMA{best_order} sobre Datos Suavizados (Total)',
+        title=f'Proyección ARIMA{best_order_total} sobre Datos Suavizados (Total)',
         xaxis_title='Fecha',
         yaxis_title='Cantidad de Material (m³)',
         xaxis=dict(tickformat="%b %Y"),
         hovermode="x"
     )
     st.plotly_chart(fig)
+
+    # Mostrar MAPE del total
+    st.write("### Error Promedio del Pronóstico (Total)")
+    st.write(f"Error Promedio Asociado (MAPE): {best_mape_total:.2%}")
