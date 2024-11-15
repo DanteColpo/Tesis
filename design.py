@@ -7,21 +7,26 @@ def set_page_config():
 # Función para mostrar el logo y título de la aplicación
 def show_logo_and_title():
     st.image("Logo_ProyeKTA+.png", width=300)
-    st.markdown("<h1 style='text-align: center; font-weight: bold; font-size: 2.5em; color: #2C3E50;'>ProyeKTA+</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; font-style: italic; font-size: 1.5em; margin-top: -10px;'>Proyecta tu éxito</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-weight: bold; font-size: 3em; color: #4E74F4;'>ProyeKTA+</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-style: italic; font-size: 1.5em; color: #333333; margin-top: -10px;'>Proyecta tu éxito</h2>", unsafe_allow_html=True)
 
 # Función para mostrar las instrucciones de uso
 def show_instructions():
     st.markdown(
-        "<p style='text-align: center; color: #2C3E50; font-size: 1.2em;'>"
+        "<p style='text-align: center; color: #4E74F4; font-size: 1.2em;'>"
         "Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos 3 meses."
         "</p>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "<p style='text-align: center; color: #999999; font-size: 0.9em;'>"
+        "Asegúrate de que el archivo contenga columnas como 'Fecha', 'Sector', 'Material' y 'Cantidad'.</p>",
         unsafe_allow_html=True
     )
 
 # Función para mostrar la sección de preguntas frecuentes
 def show_faq():
-    st.markdown("<h3 style='text-align: center; color: #2C3E50; font-size: 1.4em; font-weight: bold;'>Preguntas Frecuentes</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.4em; font-weight: bold;'>Preguntas Frecuentes</h3>", unsafe_allow_html=True)
     faq_content = {
         "¿Qué método utiliza esta aplicación para la proyección de demanda?": 
         "Esta aplicación emplea el modelo ARIMA para realizar proyecciones basadas en datos históricos de demanda. ARIMA permite identificar patrones y prever fluctuaciones de manera precisa.",
@@ -40,18 +45,18 @@ def show_faq():
     }
     for question, answer in faq_content.items():
         with st.expander(question):
-            st.markdown(f"<p style='text-align: justify;'>{answer}</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align: justify; color: #333333;'>{answer}</p>", unsafe_allow_html=True)
             if question == "¿Qué datos son necesarios en el archivo de Excel?":
                 st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección")
 
 # Función para mostrar la información de contacto
 def show_contact_info():
-    st.markdown("<h3 style='text-align: center; color: #2C3E50; font-size: 1.2em;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.2em;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", unsafe_allow_html=True)
     st.markdown(
         """
-        <div style='text-align: center; font-size: 1.1em;'>
-            <p>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank'>@DanteColpo</a></p>
-            <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com'>dante.colpo@gmail.com</a></p>
+        <div style='text-align: center; font-size: 1.1em; color: #333333;'>
+            <p>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank' style='color: #4E74F4;'>@DanteColpo</a></p>
+            <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com' style='color: #4E74F4;'>dante.colpo@gmail.com</a></p>
         </div>
         """, 
         unsafe_allow_html=True
@@ -63,4 +68,5 @@ show_logo_and_title()
 show_instructions()
 show_faq()
 show_contact_info()
+
 
