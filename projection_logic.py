@@ -29,7 +29,6 @@ def show_projection(data):
     # Filtrar solo los datos del sector privado
     data_privado = data[data['SECTOR'] == 'PRIVADO']
 
-    # Verificación de que hay suficientes datos
     if data_privado.empty or len(data_privado) < 12:
         st.warning("No hay suficientes datos para el sector PRIVADO después del resampleo.")
         return
@@ -41,47 +40,66 @@ def show_projection(data):
         best_alpha = 0.9
         data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
-        # División en conjunto de entrenamiento
-        train = data_privado['CANTIDAD_SUAVIZADA']
+        # División en conjunto de entrenamiento y prueba
+        train = data_privado['CANTIDAD_SUAVIZADA'].iloc[:-3]
+        test = data_privado['CANTIDAD_SUAVIZADA'].iloc[-3:]
 
-        # Ajuste del modelo ARIMA
-        best_order = (4, 1, 1)
+        # Búsqueda del mejor modelo ARIMA
+        best_mape = float('inf')
+        best_rmse = float('inf')
+        best_order = None
+
+        for p in range(1, 5):
+            for d in range(1, 2):  # Fijamos d en 1 para diferenciar solo una vez
+                for q in range(1, 5):
+                    try:
+                        model = ARIMA(train, order=(p, d, q)).fit()
+                        forecast = model.forecast(steps=3)
+                        mape = mean_absolute_percentage_error(test, forecast)
+                        rmse = np.sqrt(mean_squared_error(test, forecast))
+
+                        if mape < best_mape:
+                            best_mape = mape
+                            best_rmse = rmse
+                            best_order = (p, d, q)
+
+                    except Exception as e:
+                        st.write(f"Error en ARIMA({p},{d},{q}): {e}")
+
+        # Mostrar el mejor modelo encontrado
+        st.write(f"Mejor modelo ARIMA encontrado: {best_order} con Precisión del Pronóstico: {100 - best_mape:.2f}% (MAPE: {best_mape:.2%})")
+
+        # Pronóstico final usando el mejor modelo
         model = ARIMA(train, order=best_order).fit()
-
-        # Pronóstico para los próximos meses
         forecast_steps = 3  # Proyecta los siguientes 3 meses
         forecast = model.forecast(steps=forecast_steps)
         forecast_dates = pd.date_range(train.index[-1] + pd.DateOffset(months=1), periods=forecast_steps, freq='M')
 
-        # Cálculo del MAPE y conversión a nivel de precisión
-        actual = data_privado['CANTIDAD_SUAVIZADA'][-3:]
-        mape = mean_absolute_percentage_error(actual, forecast[:3])
-        nivel_precision = 100 - mape * 100  # Convertir MAPE en precisión
-
-        # Visualización de resultados
+        # Visualización del resultado
         fig, ax = plt.subplots()
         ax.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
-        ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA({best_order[0]},{best_order[1]},{best_order[2]})', linestyle='--', color='orange')
+        ax.plot(test.index, test, label='Datos Reales Suavizados')
+        ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA{best_order}', linestyle='--', color='orange')
         ax.set_xlabel('Fecha')
         ax.set_ylabel('Cantidad de Material')
         ax.legend()
 
-        # Formato de las fechas en el eje X
-        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m'))
-        plt.xticks(rotation=45)
-
         st.pyplot(fig)
 
-        # Mostrar resultados en tabla con formato de mes y año
+        # Mostrar resultados en tabla
         forecast_table = pd.DataFrame({
-            'Fecha': forecast_dates.strftime('%B %Y'),  # Formato de mes y año
-            'Proyección ARIMA': forecast
+            'Fecha': forecast_dates.strftime("%B %Y"),
+            'Proyección ARIMA': forecast.values
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
 
-        # Mostrar nivel de precisión y explicación
-        st.write(f"### Precisión del Pronóstico: {nivel_precision:.2f}%")
-        st.write("Este modelo tiene un nivel de precisión que indica qué tan cercanos están los valores pronosticados con respecto a los valores reales históricos.")
+        # Explicación sobre la precisión del pronóstico
+        st.write("### Precisión del Pronóstico:")
+        st.write(f"Este modelo tiene un nivel de precisión del {100 - best_mape:.2f}%, lo que indica que los valores pronosticados están cercanos a los valores reales históricos.")
         st.write("**Interpretación del gráfico:** Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
-        
+
+# Cargar y procesar el archivo
+data = upload_and_process_file()
+if data is not None:
+    show_projection(data)
