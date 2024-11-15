@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import streamlit as st
-import matplotlib.dates as mdates
+import plotly.graph_objects as go
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
@@ -44,7 +43,7 @@ def show_projection(data):
         # Resamplear a datos mensuales y seleccionar solo la columna CANTIDAD
         data_privado = data_privado[['CANTIDAD']].resample('M').sum()
 
-        # Suavización exponencial con alpha = 0.9
+        # Suavización exponencial con el mejor alpha
         alpha = 0.9
         data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
 
@@ -58,7 +57,7 @@ def show_projection(data):
         best_model = None
 
         # Rango limitado de p, d, q
-        p = range(1, 6)
+        p = range(3, 6)
         d = [1]
         q = range(0, 4)
 
@@ -79,35 +78,33 @@ def show_projection(data):
         forecast = best_model.forecast(steps=3)
         forecast_dates = pd.date_range(test.index[-1], periods=4, freq='M')[1:]
 
-        # Visualización del gráfico
-        fig, ax = plt.subplots()
-        ax.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
-        ax.plot(test.index, test, label='Datos Reales Suavizados')
-        ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA{best_order}', linestyle='--', color='orange')
-        ax.set_xlabel('Fecha')
-        ax.set_ylabel('Cantidad de Material')
-        ax.legend()
+        # Gráfico interactivo con plotly
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=train.index, y=train, mode='lines', name='Datos de Entrenamiento Suavizados'))
+        fig.add_trace(go.Scatter(x=test.index, y=test, mode='lines', name='Datos Reales Suavizados', line=dict(color='orange')))
+        fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers', name=f'Pronóstico ARIMA{best_order}', line=dict(dash='dash', color='green')))
+        fig.update_layout(
+            title=f'Proyección ARIMA{best_order} sobre Datos Suavizados',
+            xaxis_title='Fecha',
+            yaxis_title='Cantidad de Material (m³)',
+            xaxis=dict(tickformat="%b %Y"),
+            hovermode="x"
+        )
+        st.plotly_chart(fig)
 
-        # Formato de fecha en el eje X
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
-        plt.xticks(rotation=45)
-
-        # Mostrar el gráfico en Streamlit
-        st.pyplot(fig)
-
-        # Mostrar resultados en tabla
+        # Mostrar resultados en tabla sin decimales
         forecast_table = pd.DataFrame({
             'Fecha': forecast_dates.strftime('%B %Y'),
-            'Proyección ARIMA': forecast
+            'Proyección ARIMA (m³)': forecast.round().astype(int)  # Mostramos solo enteros y añadimos m³
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
 
-        # Mostrar el Error Promedio (MAPE)
+        # Mostrar el Error Promedio (MAPE) sin decimales
         st.write("### Error Promedio del Pronóstico")
         st.write(f"Error Promedio (MAPE): {best_mape:.2%}")
 
-        # Agregar una breve explicación sobre cómo interpretar el error promedio
+        # Explicación del gráfico
         st.write("Este modelo tiene un nivel de error promedio que indica qué tan cerca están los valores pronosticados de los valores reales históricos.")
         st.write("**Interpretación del gráfico:** Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
 
