@@ -35,7 +35,7 @@ def show_projection(data):
     data = data.dropna(subset=['FECHA'])
     data = data.set_index('FECHA')
 
-    # Filtrar solo los datos del sector privado, manteniendo 'Material'
+    # Filtrar solo los datos del sector privado, manteniendo 'MATERIAL'
     data_privado = data[data['SECTOR'] == 'PRIVADO']
 
     # Verificación de que hay suficientes datos
@@ -103,7 +103,7 @@ def show_projection(data):
             })
             st.write(forecast_table)
     else:
-        st.warning("No se encontró la columna 'Material' en los datos. Solo se mostrará la proyección total.")
+        st.warning("No se encontró la columna 'MATERIAL' en los datos. Solo se mostrará la proyección total.")
 
     # Gráfico y proyección para el total
     st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
@@ -148,4 +148,9 @@ def show_projection(data):
         hovermode="x"
     )
     st.plotly_chart(fig)
+
+# Ejecución principal
+data = upload_and_process_file()
+if data is not None:
+    show_projection(data)
 
