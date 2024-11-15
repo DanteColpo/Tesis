@@ -11,7 +11,7 @@ def show_logo_and_title():
 def show_instructions():
     st.markdown(
         "<p style='text-align: center; color: #2C3E50; font-size: 1.2em;'>"
-        "Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses."
+        "Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos 3 meses."
         "</p>",
         unsafe_allow_html=True
     )
