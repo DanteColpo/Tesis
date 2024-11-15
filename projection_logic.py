@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
+from sklearn.metrics import mean_absolute_percentage_error
 import matplotlib.pyplot as plt
 import streamlit as st
 
@@ -17,22 +17,6 @@ def upload_and_process_file():
             st.success("Archivo cargado exitosamente.")
             return data
     return None
-
-
-def find_best_alpha(data):
-    """Busca el mejor valor de alpha para la suavización exponencial minimizando el MAPE."""
-    best_alpha = None
-    best_mape = float('inf')
-
-    for alpha in np.arange(0.01, 1.1, 0.01):  # Prueba valores de alpha de 0.1 a 1 en pasos de 0.1
-        fitted_values = SimpleExpSmoothing(data).fit(smoothing_level=alpha, optimized=False).fittedvalues
-        mape = mean_absolute_percentage_error(data, fitted_values)
-        
-        if mape < best_mape:
-            best_mape = mape
-            best_alpha = alpha
-    
-    return best_alpha, best_mape
 
 def show_projection(data):
     st.write("Proyección ARIMA para el Sector Privado")
@@ -53,14 +37,14 @@ def show_projection(data):
         # Resamplear a datos mensuales y seleccionar solo la columna CANTIDAD
         data_privado = data_privado[['CANTIDAD']].resample('M').sum()
 
-        # Buscar el mejor valor de alpha para la suavización exponencial
-        best_alpha, best_mape_alpha = find_best_alpha(data_privado['CANTIDAD'])
+        # Suavización exponencial con alpha fijo en 0.9
+        best_alpha = 0.9
         data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
         # División en conjunto de entrenamiento
         train = data_privado['CANTIDAD_SUAVIZADA']
 
-        # Ajuste del modelo ARIMA
+        # Ajuste del modelo ARIMA con (4, 1, 1)
         best_order = (4, 1, 1)
         model = ARIMA(train, order=best_order).fit()
 
@@ -68,6 +52,10 @@ def show_projection(data):
         forecast_steps = 3
         forecast = model.forecast(steps=forecast_steps)
         forecast_dates = pd.date_range(train.index[-1] + pd.DateOffset(months=1), periods=forecast_steps, freq='M')
+
+        # Calcular MAPE en base a los últimos valores
+        test = data_privado['CANTIDAD_SUAVIZADA'].iloc[-3:]
+        mape = mean_absolute_percentage_error(test, forecast)
 
         # Visualización de resultados
         fig, ax = plt.subplots()
@@ -81,11 +69,16 @@ def show_projection(data):
 
         # Mostrar resultados en tabla
         forecast_table = pd.DataFrame({
-            'Fecha': forecast_dates.strftime("%B %Y"),
+            'Fecha': forecast_dates.strftime('%B %Y'),
             'Proyección ARIMA': forecast
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
 
-        # Mostrar MAPE de suavización exponencial
-        st.write(f"### Mejor alpha encontrado para Suavización Exponencial: {best_alpha} (MAPE: {best_mape_alpha:.2%})")
+        # Mostrar el MAPE como nivel de precisión
+        st.write(f"### Precisión del Pronóstico: {100 - mape:.2f}% (MAPE: {mape:.2%})")
+
+        # Explicación para el usuario
+        st.write("Este modelo tiene un nivel de precisión que indica qué tan cercanos están los valores pronosticados con respecto a los valores reales históricos.")
+        st.write("Interpretación del gráfico: Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
+
