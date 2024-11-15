@@ -28,7 +28,7 @@ def show_faq():
             st.write("Respuesta pendiente")
 
 def show_contact_info():
-    st.markdown("<h3 style='text-align: center;'>Contáctanos</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", unsafe_allow_html=True)
     st.markdown(
         """
         <div style='text-align: center;'>
