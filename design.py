@@ -5,7 +5,7 @@ def set_page_config():
 
 def show_logo_and_title():
     st.image("Logo_ProyeKTA+.png", width=300)
-    st.markdown("<h1 style='text-align: center; font-weight: bold; font-size: 2.5em;'>ProyeKTA+</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-weight: bold; font-size: 2.5em; color: #2C3E50;'>ProyeKTA+</h1>", unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center; font-style: italic; font-size: 1.5em; margin-top: -10px;'>Proyecta tu éxito</h2>", unsafe_allow_html=True)
 
 def show_instructions():
