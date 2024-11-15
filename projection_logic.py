@@ -92,13 +92,14 @@ def show_projection(data):
         )
         st.plotly_chart(fig)
 
-        # Mostrar resultados en tabla sin decimales
+        # Mostrar resultados en tabla sin decimales y ajustando el formato de la fecha
         forecast_table = pd.DataFrame({
-            'Fecha': forecast_dates.strftime('%B %Y'),
+            'Fecha': forecast_dates.strftime('%B %Y'),  # Formato deseado de mes y año
             'Proyección ARIMA (m³)': forecast.round().astype(int)  # Mostramos solo enteros y añadimos m³
         })
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
+
 
         # Mostrar el Error Promedio (MAPE) sin decimales
         st.write("### Error Promedio del Pronóstico")
