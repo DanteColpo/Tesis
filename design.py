@@ -50,7 +50,7 @@ def show_contact_info():
     st.markdown(
         """
         <div style='text-align: center; font-size: 1.1em;'>
-            <p>📷 Instagram: <a href='https://instagram.com/Dante.Colpo' target='_blank'>@Dante.Colpo</a></p>
+            <p>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank'>@DanteColpo</a></p>
             <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com'>dante.colpo@gmail.com</a></p>
         </div>
         """, 
