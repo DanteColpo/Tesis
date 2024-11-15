@@ -2,14 +2,23 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_absolute_percentage_error
+from datetime import datetime
+
+# Configuración de la página
+st.set_page_config(page_title="Proyección de Demanda de Áridos", layout="centered")
 
 # Título de la aplicación
 st.title('Proyección de Demanda de Áridos')
 
+# Instrucciones rápidas para el usuario
+st.write("Sube un archivo Excel (.xlsx) con los datos de demanda para obtener una proyección de los próximos meses.")
+
 # Cargar el archivo de Excel
 uploaded_file = st.file_uploader("Sube el archivo Excel", type=["xlsx"])
 
-# Definir el orden de los meses y los nombres en español
+# Diccionarios de meses en español y orden para visualización
 meses_ordenados = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 meses_dict = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
 
@@ -17,9 +26,11 @@ if uploaded_file is not None:
     # Leer el archivo Excel
     data = pd.read_excel(uploaded_file)
 
+    # Verificar si el archivo contiene datos
     if data.empty:
         st.warning("El archivo está vacío o no tiene datos válidos.")
     else:
+        st.success("Archivo cargado exitosamente.")
         st.write("Datos cargados:")
         st.write(data.head())
 
@@ -67,14 +78,28 @@ if uploaded_file is not None:
 
         # Incluir proyección con ARIMA y MAPE
         if incluir_proyeccion and periodo == 'Mensual':
-            arima_model = ARIMA(grouped_data['CANTIDAD'], order=(1, 1, 1)).fit()
-            forecast = arima_model.forecast(steps=1)
-            mape = mean_absolute_percentage_error(grouped_data['CANTIDAD'], arima_model.predict())
-            conf_interval = arima_model.get_forecast(steps=1).conf_int()
+            try:
+                # ARIMA para proyección
+                arima_model = ARIMA(grouped_data['CANTIDAD'], order=(4, 1, 1)).fit()
+                forecast = arima_model.forecast(steps=1)
+                mape = mean_absolute_percentage_error(grouped_data['CANTIDAD'], arima_model.predict())
+                conf_interval = arima_model.get_forecast(steps=1).conf_int()
 
-            st.write(f"Proyección del próximo mes: {forecast.values[0]:.2f} ± ({conf_interval[0,0]:.2f}, {conf_interval[0,1]:.2f})")
-            st.write(f"MAPE del modelo: {mape:.2%}")
-        
+                st.write(f"**Proyección del próximo mes:** {forecast.values[0]:.2f} ± ({conf_interval.iloc[0, 0]:.2f}, {conf_interval.iloc[0, 1]:.2f})")
+                st.write(f"**MAPE del modelo:** {mape:.2%}")
+
+                # Mostrar la proyección en el gráfico
+                future_dates = [x.max() + 1]  # Suponiendo meses en orden
+                ax.plot(future_dates, forecast.values, label="Proyección ARIMA", linestyle='--', color='red')
+                ax.fill_between(future_dates, conf_interval.iloc[:, 0], conf_interval.iloc[:, 1], color='red', alpha=0.3)
+
+            except Exception as e:
+                st.error(f"Error al generar la proyección ARIMA: {e}")
+
         st.pyplot(fig)
 
+# Pie de página
+st.markdown("___")
+st.markdown("**Nota:** Esta herramienta proporciona una proyección de demanda basada en datos históricos y modelos estadísticos. Los resultados son aproximados y deben interpretarse con precaución.")
+st.markdown("¿Necesitas ayuda? Consulta nuestras [Preguntas Frecuentes](#) o [Contáctanos](#).")
 
