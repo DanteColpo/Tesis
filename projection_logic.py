@@ -1,12 +1,16 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import streamlit as st
+import matplotlib.dates as mdates
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import streamlit as st
 
+# Configuración inicial de la página
+st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
+
+# Función para cargar y procesar el archivo
 def upload_and_process_file():
     uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
     if uploaded_file is not None:
@@ -19,6 +23,7 @@ def upload_and_process_file():
             return data
     return None
 
+# Función para mostrar la proyección ARIMA
 def show_projection(data):
     st.write("Proyección ARIMA para el Sector Privado")
 
@@ -51,23 +56,25 @@ def show_projection(data):
         model = ARIMA(train, order=best_order).fit()
 
         # Pronóstico para los próximos meses
-        forecast_steps = 3
+        forecast_steps = 3  # Proyecta los siguientes 3 meses
         forecast = model.forecast(steps=forecast_steps)
-        forecast_dates = pd.date_range(test.index[-1], periods=4, freq='M')[1:]  # Proyección desde el siguiente mes
+        forecast_dates = pd.date_range(test.index[-1], periods=forecast_steps + 1, freq='M')[1:]
 
-        # Visualización de resultados
+        # Cálculo del MAPE como "Error Promedio"
+        mape = mean_absolute_percentage_error(test, forecast)
+
+        # Visualización del gráfico
         fig, ax = plt.subplots()
         ax.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
         ax.plot(test.index, test, label='Datos Reales Suavizados')
-        ax.plot(forecast_dates, forecast, 
-                label=f'Pronóstico ARIMA({best_order[0]},{best_order[1]},{best_order[2]})', linestyle='--', color='orange')
+        ax.plot(forecast_dates, forecast, label=f'Pronóstico ARIMA({best_order[0]},{best_order[1]},{best_order[2]})', linestyle='--', color='orange')
         ax.set_xlabel('Fecha')
         ax.set_ylabel('Cantidad de Material')
         ax.legend()
 
         # Formato de fecha en el eje X
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
-        plt.xticks(rotation=45)  # Rotar etiquetas de fechas para legibilidad
+        plt.xticks(rotation=45)
 
         # Mostrar el gráfico en Streamlit
         st.pyplot(fig)
@@ -80,17 +87,20 @@ def show_projection(data):
         st.write("### Valores de Proyección para los Próximos Meses")
         st.write(forecast_table)
 
-        # Calcular y mostrar el MAPE y la precisión del pronóstico
-        mape = mean_absolute_percentage_error(test, forecast)
-        st.write(f"### Precisión del Pronóstico: {100 - mape:.2f}% (MAPE: {mape:.2%})")
-        st.write("Este modelo tiene un nivel de precisión que indica qué tan cercanos están los valores pronosticados con respecto a los valores reales históricos.")
-        st.write("**Interpretación del gráfico**: Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
+        # Mostrar el Error Promedio (MAPE)
+        st.write("### Error Promedio del Pronóstico")
+        st.write(f"Error Promedio (MAPE): {mape:.2%}")
 
-# Configuración de la aplicación en Streamlit
-st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
+        # Agregar una breve explicación sobre cómo interpretar el error promedio
+        st.write("Este modelo tiene un nivel de error promedio que indica qué tan cerca están los valores pronosticados de los valores reales históricos.")
+        st.write("**Interpretación del gráfico:** Las líneas muestran la proyección de demanda esperada en comparación con los datos reales anteriores. La línea sólida representa los datos suavizados históricos, y la línea discontinua muestra la proyección del modelo ARIMA.")
+
+# Configuración de la página y diseño inicial
+st.title("ProyeKTA+")
+st.subheader("Proyecta tu éxito")
+st.markdown("Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.")
 
 # Cargar el archivo y procesar datos para la proyección
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
-
