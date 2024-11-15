@@ -10,7 +10,7 @@ from datetime import datetime
 st.set_page_config(page_title="Proyekta+", page_icon="📊", layout="centered")
 
 # Insertar el logo de la aplicación en el centro, con tamaño ajustado
-st.image("Logo_ProyekTA+.png", width=300)  # Asegúrate de que el archivo del logo esté en el mismo directorio
+st.image("logo_proyekta.png", width=300)  # Asegúrate de que el archivo del logo esté en el mismo directorio
 
 # Instrucciones rápidas para el usuario
 st.markdown("<h2 style='text-align: center; color: #F97316;'>Sube un archivo Excel (.xlsx) con los datos de demanda histórica para obtener una proyección de los próximos meses.</h2>", unsafe_allow_html=True)
