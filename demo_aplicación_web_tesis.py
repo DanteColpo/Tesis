@@ -3,7 +3,7 @@ from design import set_page_config, show_logo_and_title, show_instructions, show
 from projection_logic import upload_and_process_file, show_projection
 from side_panels import show_left_panel, show_public_vs_private_demand
 
-# Configuración de la página
+# Configuración de la página (MOVERLO AQUÍ COMO PRIMERA INSTRUCCIÓN)
 st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="wide")
 
 # Configuración inicial del diseño de la aplicación
