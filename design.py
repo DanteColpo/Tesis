@@ -43,20 +43,12 @@ def show_faq():
     }
     for question, answer in faq_content.items():
         with st.expander(question):
-            # Agregar texto de respuesta con color mejorado
-            st.markdown(f"<p style='text-align: justify; color: #333333; font-size: 1.1em;'>{answer}</p>", unsafe_allow_html=True)
+            # Agregar texto de respuesta con color más claro
+            st.markdown(f"<p style='text-align: justify; color: #E0E0E0; font-size: 1.1em;'>{answer}</p>", unsafe_allow_html=True)
             
-            # Insertar imagen en la pregunta 5 con estilo profesional
+            # Insertar imagen en la pregunta 5 con método Streamlit
             if question == "5.- ¿Qué datos son necesarios en el archivo de Excel?":
-                st.markdown(
-                    """
-                    <div style="text-align: center; margin-top: 15px;">
-                        <img src="Ejemplo Excel.png" style="border: 2px solid #4E74F4; border-radius: 5px; max-width: 100%; height: auto;">
-                        <p style="color: #4E74F4; font-size: 0.9em;">Ejemplo de estructura de archivo Excel para la proyección</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección", use_column_width=True)
 
 
 # Función para mostrar un mensaje claro en caso de error con el archivo subido
