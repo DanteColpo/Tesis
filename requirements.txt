@@ -5,5 +5,5 @@ matplotlib
 statsmodels
 scikit-learn
 pmdarima
-plotly
+plotly==5.15.0
 openpyxl
