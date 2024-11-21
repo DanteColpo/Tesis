@@ -8,7 +8,7 @@ def set_page_config():
 def show_logo_and_title():
     st.image("Logo_ProyeKTA+.png", width=300)
     st.markdown("<h1 style='text-align: center; font-weight: bold; font-size: 3em; color: #4E74F4;'>ProyeKTA+</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; font-style: italic; font-size: 1.5em; color: #333333; margin-top: -10px;'>Proyecta tu éxito</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-style: italic; font-size: 1.5em; color: #2ECC71; margin-top: -10px;'>Proyecta tu éxito</h2>", unsafe_allow_html=True)
 
 # Función para mostrar las instrucciones de uso
 def show_instructions():
@@ -54,9 +54,9 @@ def show_contact_info():
     st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.2em;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", unsafe_allow_html=True)
     st.markdown(
         """
-        <div style='text-align: center; font-size: 1.1em; color: #333333;'>
-            <p>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank' style='color: #4E74F4;'>@DanteColpo</a></p>
-            <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com' style='color: #4E74F4;'>dante.colpo@gmail.com</a></p>
+        <div style='text-align: center; font-size: 1.1em; color: #2ECC71;'>
+            <p>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank' style='color: #2ECC71;'>@DanteColpo</a></p>
+            <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com' style='color: #2ECC71;'>dante.colpo@gmail.com</a></p>
         </div>
         """, 
         unsafe_allow_html=True
@@ -68,5 +68,3 @@ show_logo_and_title()
 show_instructions()
 show_faq()
 show_contact_info()
-
-
