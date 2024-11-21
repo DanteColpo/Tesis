@@ -23,6 +23,7 @@ def show_instructions():
         unsafe_allow_html=True
     )
 
+# Función para mostrar la sección de preguntas frecuentes
 def show_faq():
     st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.4em; font-weight: bold;'>Preguntas Frecuentes</h3>", unsafe_allow_html=True)
     faq_content = {
@@ -46,9 +47,10 @@ def show_faq():
             # Agregar texto de respuesta con color más claro
             st.markdown(f"<p style='text-align: justify; color: #E0E0E0; font-size: 1.1em;'>{answer}</p>", unsafe_allow_html=True)
             
-            # Insertar imagen en la pregunta 5 con método Streamlit
+            # Insertar imagen en la pregunta 5 con tamaño reducido
             if question == "5.- ¿Qué datos son necesarios en el archivo de Excel?":
-                st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección", use_column_width=True)
+                st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección", use_column_width=False, width=400)
+
 
 
 # Función para mostrar un mensaje claro en caso de error con el archivo subido
