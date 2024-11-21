@@ -36,15 +36,17 @@ def optimize_arima(data, steps):
             model = ARIMA(data, order=order).fit()
             forecast = model.forecast(steps=steps)
             test_values = data.iloc[-steps:]
-            mape = mean_absolute_percentage_error(test_values, forecast)
+            # Verifica que los valores estén en la misma escala y ajusta si es necesario
+            mape = mean_absolute_percentage_error(test_values, forecast) * 100  # Asegura que esté en porcentaje
             if mape < best_mape:
                 best_mape = mape
                 best_order = order
                 best_model = model
-        except Exception as e:
+        except Exception:
             continue
 
     return best_model, best_order, best_mape
+
 
 # Función para mostrar la proyección ARIMA
 def show_projection(data):
