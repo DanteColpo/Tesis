@@ -7,9 +7,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from itertools import product
 from sklearn.metrics import mean_absolute_percentage_error
 
-# Configuración de la página
-st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="wide")
-
 # Función para cargar y procesar el archivo
 def upload_and_process_file():
     uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
@@ -29,7 +26,7 @@ def upload_and_process_file():
 def optimize_arima(data, steps):
     p = range(1, 6)
     d = [1]
-    q = range(0, 4)
+    q = range(1, 4)
     best_mape = float("inf")
     best_order = None
     best_model = None
@@ -39,17 +36,27 @@ def optimize_arima(data, steps):
             model = ARIMA(data, order=order).fit()
             forecast = model.forecast(steps=steps)
             test_values = data.iloc[-steps:]
-            mape = mean_absolute_percentage_error(test_values, forecast) * 100
+            mape = mean_absolute_percentage_error(test_values, forecast) * 100  # En porcentaje
             if mape < best_mape:
                 best_mape = mape
                 best_order = order
                 best_model = model
-        except Exception as e:
-            st.write(f"Error con orden {order}: {e}")
+        except Exception:
             continue
 
     return best_model, best_order, best_mape
 
+# Validar el modelo ARIMA (5, 1, 3)
+def validate_fixed_arima(data, steps):
+    fixed_order = (5, 1, 3)
+    try:
+        model = ARIMA(data, order=fixed_order).fit()
+        forecast = model.forecast(steps=steps)
+        test_values = data.iloc[-steps:]
+        mape = mean_absolute_percentage_error(test_values, forecast) * 100
+        return model, fixed_order, mape
+    except Exception:
+        return None, fixed_order, None
 
 # Función para calcular la proyección de 3 meses
 def calculate_3_months_projection(data):
@@ -72,11 +79,20 @@ def calculate_3_months_projection(data):
     train = data_privado['CANTIDAD_SUAVIZADA']
     best_model, best_order, best_mape = optimize_arima(train, steps=3)
 
+    # Validar el modelo fijo (5, 1, 3)
+    fixed_model, fixed_order, fixed_mape = validate_fixed_arima(train, steps=3)
+
+    # Seleccionar el mejor modelo
+    if fixed_model and fixed_mape < best_mape:
+        final_model, final_order, final_mape = fixed_model, fixed_order, fixed_mape
+    else:
+        final_model, final_order, final_mape = best_model, best_order, best_mape
+
     # Proyección
-    forecast = best_model.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
+    forecast = final_model.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
     dates = pd.date_range(start=data_privado.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
 
-    return data_privado, forecast, dates, (best_order, best_mape)
+    return data_privado, forecast, dates, (final_order, final_mape)
 
 # Función principal para mostrar la proyección
 def show_projection(data):
@@ -117,7 +133,3 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
-
-
-
-
