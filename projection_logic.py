@@ -27,6 +27,16 @@ def calculate_mape(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
+# Función para ajustar modelo ARIMA óptimo y generar proyección
+def generate_optimal_arima(data, steps):
+    try:
+        model = ARIMA(data, order=(4, 1, 0)).fit()
+        forecast = model.forecast(steps=steps).apply(lambda x: max(0, x)).astype(int)
+        return forecast
+    except Exception as e:
+        st.error(f"Error al generar proyección: {e}")
+        return None
+
 # Función para mostrar la proyección ARIMA
 def show_projection(data):
     try:
@@ -49,17 +59,10 @@ def show_projection(data):
         ).fit(smoothing_level=0.9, optimized=False).fittedvalues
         train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
 
-        # Generar proyecciones con ARIMA
-        best_model = ARIMA(train_total, order=(4, 1, 0)).fit()
-        forecast_3 = best_model.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
-        forecast_6 = best_model.forecast(steps=6).apply(lambda x: max(0, x)).astype(int)
-        forecast_12 = best_model.forecast(steps=12).apply(lambda x: max(0, x)).astype(int)
-
-        # Fechas para proyecciones
-        last_date = data_privado_total.index[-1]
-        dates_3 = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=3, freq='M')
-        dates_6 = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=6, freq='M')
-        dates_12 = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=12, freq='M')
+        # Generar proyección para 3 meses (gráfico principal)
+        model_3_months = ARIMA(train_total, order=(4, 1, 0)).fit()
+        forecast_3 = model_3_months.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
+        dates_3 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
 
         # Calcular MAPE para los 3 meses
         actual_values = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
@@ -67,7 +70,7 @@ def show_projection(data):
         confidence = 100 - mape
 
         # Visualizar datos históricos y suavizados
-        st.write("### Proyección Total de Demanda")
+        st.write("### Proyección Total de Demanda (3 meses)")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=data_privado_total.index, y=data_privado_total['CANTIDAD'], 
                                  mode='lines', name='Datos Originales', line=dict(color='red')))
@@ -76,22 +79,28 @@ def show_projection(data):
         fig.add_trace(go.Scatter(x=dates_3, y=forecast_3, mode='lines+markers', 
                                  name='Pronóstico 3 Meses', line=dict(dash='dash', color='green')))
         fig.update_layout(
-            title="Proyección Total de Demanda",
+            title="Proyección Total de Demanda (3 meses)",
             xaxis_title="Fecha",
             yaxis_title="Cantidad de Material (m³)"
         )
         st.plotly_chart(fig)
 
         # Selección de meses para mostrar
-        projection_choice = st.selectbox("Selecciona el periodo de proyección:", [3, 6, 12])
+        projection_choice = st.selectbox("Selecciona el periodo de proyección:", ["3 meses", "6 meses", "12 meses"])
 
-        if projection_choice == 3:
+        if projection_choice == "3 meses":
             st.write("#### Tabla de Proyección (3 meses)")
             st.table(pd.DataFrame({"Fecha": dates_3, "Proyección ARIMA (m³)": forecast_3}))
-        elif projection_choice == 6:
+
+        elif projection_choice == "6 meses":
+            forecast_6 = generate_optimal_arima(train_total, steps=6)
+            dates_6 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=6, freq='M')
             st.write("#### Tabla de Proyección (6 meses)")
             st.table(pd.DataFrame({"Fecha": dates_6, "Proyección ARIMA (m³)": forecast_6}))
-        elif projection_choice == 12:
+
+        elif projection_choice == "12 meses":
+            forecast_12 = generate_optimal_arima(train_total, steps=12)
+            dates_12 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=12, freq='M')
             st.write("#### Tabla de Proyección (12 meses)")
             st.table(pd.DataFrame({"Fecha": dates_12, "Proyección ARIMA (m³)": forecast_12}))
 
@@ -113,6 +122,7 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
+
 
 
 
