@@ -59,21 +59,34 @@ def show_left_panel():
     # Contexto y fuente del gráfico
     st.sidebar.markdown(
         """
-        **Contexto:** Este gráfico muestra la evolución de la demanda en el mercado de áridos 
-        en los últimos 3 meses, basado en datos nacionales relevantes.
-        """
+        <p style='color: #EAEAEA; font-size: 1.1em; text-align: justify;'>
+        <b>Contexto:</b> Este gráfico muestra la evolución de la demanda en el mercado de áridos 
+        en los últimos 3 meses, basado en datos nacionales relevantes.</p>
+        """, 
+        unsafe_allow_html=True
     )
-    st.sidebar.markdown("**Fuente:** Cámara Chilena de la Construcción (CChC).")
+    st.sidebar.markdown(
+        "<p style='color: #8AB4F8;'><b>Fuente:</b> Cámara Chilena de la Construcción (CChC).</p>",
+        unsafe_allow_html=True
+    )
 
     # Obtener el valor actual de la UF
     uf_actual = get_current_uf()
 
     # Indicadores clave
-    st.sidebar.markdown("### Indicadores Clave:")
-    st.sidebar.markdown(f"- **Proyectos MOP Activos en {region}:** {proyectos_region}")
+    st.sidebar.markdown("<h3 style='color: #4E74F4;'>Indicadores Clave:</h3>", unsafe_allow_html=True)
+    st.sidebar.markdown(
+        f"<p style='color: #EAEAEA; font-size: 1.1em;'>"
+        f"- <b>Proyectos MOP Activos en {region}:</b> {proyectos_region}</p>",
+        unsafe_allow_html=True
+    )
     if uf_actual:
-        st.sidebar.markdown(f"- **UF Actual:** {uf_actual:,.2f} CLP")
-        st.sidebar.markdown("**Fuente:** [mindicador.cl](https://mindicador.cl/)")
+        st.sidebar.markdown(
+            f"<p style='color: #EAEAEA; font-size: 1.1em;'>"
+            f"- <b>UF Actual:</b> {uf_actual:,.2f} CLP</p>"
+            "<p style='color: #8AB4F8;'><b>Fuente:</b> <a href='https://mindicador.cl/' target='_blank' style='color: #4E74F4;'>mindicador.cl</a></p>", 
+            unsafe_allow_html=True
+        )
 
 def show_public_vs_private_demand():
     # Datos para el gráfico de barras
@@ -98,7 +111,7 @@ def show_public_vs_private_demand():
         legend_title="Sectores",
         title_x=0.5,
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(size=14)  # Tamaño de fuente más grande
+        font=dict(size=14)
     )
     fig2.update_traces(marker=dict(line=dict(width=1.5, color='black')), textposition='outside')
 
@@ -109,13 +122,18 @@ def show_public_vs_private_demand():
     # Contexto del gráfico
     st.sidebar.markdown(
         """
-        **Contexto:** Este gráfico permite comparar la proporción de demanda pública y privada
-        en el mercado de áridos, ayudando a identificar tendencias y prioridades.
-        """
+        <p style='color: #EAEAEA; font-size: 1.1em; text-align: justify;'>
+        <b>Contexto:</b> Este gráfico permite comparar la proporción de demanda pública y privada
+        en el mercado de áridos, ayudando a identificar tendencias y prioridades.</p>
+        """, 
+        unsafe_allow_html=True
     )
-    # Fuente del gráfico
-    st.sidebar.markdown("**Fuente:** Análisis nacional del mercado de áridos 2024.")
+    st.sidebar.markdown(
+        "<p style='color: #8AB4F8;'><b>Fuente:</b> Análisis nacional del mercado de áridos 2024.</p>",
+        unsafe_allow_html=True
+    )
 
 # Llamada a las funciones para mostrar los paneles
 show_left_panel()
 show_public_vs_private_demand()
+
