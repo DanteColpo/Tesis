@@ -4,8 +4,8 @@ import streamlit as st
 import plotly.graph_objects as go
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
-from io import BytesIO
-import openpyxl
+from itertools import product
+from sklearn.metrics import mean_absolute_percentage_error
 
 # Función para cargar y procesar el archivo
 def upload_and_process_file():
@@ -22,20 +22,29 @@ def upload_and_process_file():
             st.error(f"Error al procesar el archivo: {e}")
     return None
 
-# Función para calcular MAPE
-def calculate_mape(y_true, y_pred):
-    y_true, y_pred = np.array(y_true), np.array(y_pred)
-    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+# Función para encontrar el mejor modelo ARIMA según el menor MAPE
+def optimize_arima(data, steps):
+    p = range(0, 6)
+    d = [1]
+    q = range(0, 4)
+    best_mape = float("inf")
+    best_order = None
+    best_model = None
 
-# Función para ajustar modelo ARIMA óptimo y generar proyección
-def generate_optimal_arima(data, steps):
-    try:
-        model = ARIMA(data, order=(4, 1, 0)).fit()
-        forecast = model.forecast(steps=steps).apply(lambda x: max(0, x)).astype(int)
-        return forecast
-    except Exception as e:
-        st.error(f"Error al generar proyección: {e}")
-        return None
+    for order in product(p, d, q):
+        try:
+            model = ARIMA(data, order=order).fit()
+            forecast = model.forecast(steps=steps)
+            test_values = data.iloc[-steps:]
+            mape = mean_absolute_percentage_error(test_values, forecast)
+            if mape < best_mape:
+                best_mape = mape
+                best_order = order
+                best_model = model
+        except Exception as e:
+            continue
+
+    return best_model, best_order, best_mape
 
 # Función para mostrar la proyección ARIMA
 def show_projection(data):
@@ -57,17 +66,12 @@ def show_projection(data):
         data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(
             data_privado_total['CANTIDAD']
         ).fit(smoothing_level=0.9, optimized=False).fittedvalues
-        train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
 
-        # Generar proyección para 3 meses (gráfico principal)
+        # Proyección de 3 meses fija para el gráfico principal
+        train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
         model_3_months = ARIMA(train_total, order=(4, 1, 0)).fit()
         forecast_3 = model_3_months.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
         dates_3 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
-
-        # Calcular MAPE para los 3 meses
-        actual_values = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
-        mape = calculate_mape(actual_values, forecast_3[:3])
-        confidence = 100 - mape
 
         # Visualizar datos históricos y suavizados
         st.write("### Proyección Total de Demanda (3 meses)")
@@ -93,23 +97,21 @@ def show_projection(data):
             st.table(pd.DataFrame({"Fecha": dates_3, "Proyección ARIMA (m³)": forecast_3}))
 
         elif projection_choice == "6 meses":
-            forecast_6 = generate_optimal_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=6)
+            best_model, best_order, best_mape = optimize_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=6)
+            forecast_6 = best_model.forecast(steps=6).apply(lambda x: max(0, x)).astype(int)
             dates_6 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=6, freq='M')
             st.write("#### Tabla de Proyección (6 meses)")
             st.table(pd.DataFrame({"Fecha": dates_6, "Proyección ARIMA (m³)": forecast_6}))
+            st.write(f"Mejor modelo ARIMA para 6 meses: {best_order}, con MAPE: {best_mape:.2f}%")
 
         elif projection_choice == "12 meses":
-            forecast_12 = generate_optimal_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=12)
+            best_model, best_order, best_mape = optimize_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=12)
+            forecast_12 = best_model.forecast(steps=12).apply(lambda x: max(0, x)).astype(int)
             dates_12 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=12, freq='M')
             st.write("#### Tabla de Proyección (12 meses)")
             st.table(pd.DataFrame({"Fecha": dates_12, "Proyección ARIMA (m³)": forecast_12}))
+            st.write(f"Mejor modelo ARIMA para 12 meses: {best_order}, con MAPE: {best_mape:.2f}%")
 
-        # Texto informativo sobre MAPE y confiabilidad
-        st.markdown(
-            f"**La proyección tiene un MAPE de {mape:.2f}%**, lo que equivale a un "
-            f"**{confidence:.2f}% de confiabilidad** para la proyección de los 3 meses. "
-            f"En el caso de una mayor proyección, la confiabilidad se ve reducida."
-        )
     except Exception as e:
         st.error(f"Error al calcular las proyecciones: {e}")
 
@@ -122,3 +124,4 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
+
