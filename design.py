@@ -54,13 +54,14 @@ def show_contact_info():
     st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.2em;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", unsafe_allow_html=True)
     st.markdown(
         """
-        <div style='text-align: center; font-size: 1.1em; color: #2ECC71;'>
-            <p>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank' style='color: #2ECC71;'>@DanteColpo</a></p>
-            <p>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com' style='color: #2ECC71;'>dante.colpo@gmail.com</a></p>
+        <div style='text-align: center; font-size: 1.1em;'>
+            <p style='color: #2ECC71;'>📷 Instagram: <a href='https://instagram.com/DanteColpo' target='_blank' style='color: #4E74F4;'>@DanteColpo</a></p>
+            <p style='color: #2ECC71;'>📧 Correo Electrónico: <a href='mailto:dante.colpo@gmail.com' style='color: #4E74F4;'>dante.colpo@gmail.com</a></p>
         </div>
         """, 
         unsafe_allow_html=True
     )
+
 
 # Ejecución de las funciones de la aplicación
 set_page_config()
