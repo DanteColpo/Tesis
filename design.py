@@ -1,9 +1,5 @@
 import streamlit as st
 
-# Configuración inicial de la página
-def set_page_config():
-    st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
-
 # Función para mostrar el logo y título de la aplicación
 def show_logo_and_title():
     st.image("Logo_ProyeKTA+.png", width=300)
