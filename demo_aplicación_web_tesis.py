@@ -20,8 +20,8 @@ if data is not None:
 # Mostrar título general antes de los gráficos
 st.markdown("## Análisis del Mercado y Demanda 📊")
 
-# Mostrar gráficos de análisis de mercado
-with st.container():
+# Mostrar gráficos en la barra lateral
+with st.sidebar:
     # Panel lateral izquierdo: Tendencias del mercado
     show_left_panel()
 
@@ -31,4 +31,5 @@ with st.container():
 # Mostrar secciones adicionales (Preguntas Frecuentes y Contacto)
 show_faq()
 show_contact_info()
+
 
