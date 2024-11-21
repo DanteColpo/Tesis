@@ -6,8 +6,14 @@ def set_page_config():
 # Función para mostrar el logo y título de la aplicación
 def show_logo_and_title():
     st.image("Logo_ProyeKTA+.png", width=300)
-    st.markdown("<h1 style='text-align: center; font-weight: bold; font-size: 3em; color: #4E74F4;'>ProyeKTA+</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; font-style: italic; font-size: 1.5em; color: #2ECC71; margin-top: -10px;'>Proyecta tu éxito</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "<h1 style='text-align: center; font-weight: bold; font-size: 3em; color: #4E74F4;'>ProyeKTA+</h1>", 
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "<h2 style='text-align: center; font-style: italic; font-size: 1.5em; color: #2ECC71; margin-top: -10px;'>Proyecta tu éxito</h2>", 
+        unsafe_allow_html=True
+    )
 
 # Función para mostrar las instrucciones de uso
 def show_instructions():
@@ -25,7 +31,11 @@ def show_instructions():
 
 # Función para mostrar la sección de preguntas frecuentes
 def show_faq():
-    st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.4em; font-weight: bold;'>Preguntas Frecuentes</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 style='text-align: center; color: #4E74F4; font-size: 1.4em; font-weight: bold;'>Preguntas Frecuentes</h3>", 
+        unsafe_allow_html=True
+    )
+    
     faq_content = {
         "1.- ¿Qué método utiliza esta aplicación para la proyección de demanda?": 
         "Esta aplicación emplea el modelo ARIMA para realizar proyecciones basadas en datos históricos de demanda. ARIMA permite identificar patrones y prever fluctuaciones de manera precisa.",
@@ -42,16 +52,22 @@ def show_faq():
         "5.- ¿Qué datos son necesarios en el archivo de Excel?": 
         "El archivo debe incluir una columna con fechas, cantidad en m³, sector (PRIVADO/PÚBLICO) y tipo de producto. A continuación se muestra un ejemplo visual de la estructura:"
     }
+
     for question, answer in faq_content.items():
         with st.expander(question):
-            # Agregar texto de respuesta con color más claro
-            st.markdown(f"<p style='text-align: justify; color: #E0E0E0; font-size: 1.1em;'>{answer}</p>", unsafe_allow_html=True)
-            
-            # Insertar imagen en la pregunta 5 con tamaño reducido
+            # Agregar texto de respuesta con color ajustado para mayor contraste
+            st.markdown(
+                f"<p style='text-align: justify; color: #EAEAEA; font-size: 1.1em;'>{answer}</p>", 
+                unsafe_allow_html=True
+            )
+            # Insertar imagen para la pregunta 5 con tamaño reducido
             if question == "5.- ¿Qué datos son necesarios en el archivo de Excel?":
-                st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección", use_column_width=False, width=400)
-
-
+                st.image(
+                    "Ejemplo Excel.png", 
+                    caption="Ejemplo de estructura de archivo Excel para la proyección", 
+                    use_column_width=False, 
+                    width=400
+                )
 
 # Función para mostrar un mensaje claro en caso de error con el archivo subido
 def show_error_instructions():
@@ -59,11 +75,19 @@ def show_error_instructions():
         "El archivo cargado no cumple con los requisitos. Asegúrate de que el archivo contenga las siguientes columnas: "
         "Fecha, Sector, Material, y Cantidad. A continuación, se muestra un ejemplo del formato esperado:"
     )
-    st.image("Ejemplo Excel.png", caption="Ejemplo de estructura de archivo Excel para la proyección")
+    st.image(
+        "Ejemplo Excel.png", 
+        caption="Ejemplo de estructura de archivo Excel para la proyección", 
+        use_column_width=False, 
+        width=400
+    )
 
 # Función para mostrar la información de contacto
 def show_contact_info():
-    st.markdown("<h3 style='text-align: center; color: #4E74F4; font-size: 1.2em;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", unsafe_allow_html=True)
+    st.markdown(
+        "<h3 style='text-align: center; color: #4E74F4; font-size: 1.2em;'>¿Tienes dudas? ¡Contáctanos en nuestras redes o por correo!</h3>", 
+        unsafe_allow_html=True
+    )
     st.markdown(
         """
         <div style='text-align: center; font-size: 1.1em;'>
@@ -80,4 +104,3 @@ show_logo_and_title()
 show_instructions()
 show_faq()
 show_contact_info()
-
