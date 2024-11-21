@@ -4,6 +4,8 @@ import streamlit as st
 import plotly.graph_objects as go
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
+from io import BytesIO
+import openpyxl
 
 # Función para cargar y procesar el archivo
 def upload_and_process_file():
@@ -25,7 +27,7 @@ def calculate_mape(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
-# Función para ajustar modelo ARIMA y generar proyección
+# Función para ajustar modelo ARIMA óptimo y generar proyección
 def generate_optimal_arima(data, steps):
     try:
         model = ARIMA(data, order=(4, 1, 0)).fit()
@@ -55,10 +57,11 @@ def show_projection(data):
         data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(
             data_privado_total['CANTIDAD']
         ).fit(smoothing_level=0.9, optimized=False).fittedvalues
-        train_total = data_privado_total['CANTIDAD_SUAVIZADA']
+        train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
 
-        # Modelo optimizado para 3 meses (gráfico principal)
-        forecast_3 = generate_optimal_arima(train_total, steps=3)
+        # Generar proyección para 3 meses (gráfico principal)
+        model_3_months = ARIMA(train_total, order=(4, 1, 0)).fit()
+        forecast_3 = model_3_months.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
         dates_3 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
 
         # Calcular MAPE para los 3 meses
@@ -90,13 +93,13 @@ def show_projection(data):
             st.table(pd.DataFrame({"Fecha": dates_3, "Proyección ARIMA (m³)": forecast_3}))
 
         elif projection_choice == "6 meses":
-            forecast_6 = generate_optimal_arima(train_total, steps=6)
+            forecast_6 = generate_optimal_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=6)
             dates_6 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=6, freq='M')
             st.write("#### Tabla de Proyección (6 meses)")
             st.table(pd.DataFrame({"Fecha": dates_6, "Proyección ARIMA (m³)": forecast_6}))
 
         elif projection_choice == "12 meses":
-            forecast_12 = generate_optimal_arima(train_total, steps=12)
+            forecast_12 = generate_optimal_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=12)
             dates_12 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=12, freq='M')
             st.write("#### Tabla de Proyección (12 meses)")
             st.table(pd.DataFrame({"Fecha": dates_12, "Proyección ARIMA (m³)": forecast_12}))
