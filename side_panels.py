@@ -1,6 +1,19 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import requests
+
+def get_current_uf():
+    """Obtiene el valor actual de la UF desde mindicador.cl."""
+    try:
+        response = requests.get("https://mindicador.cl/api")
+        response.raise_for_status()  # Verifica si la solicitud fue exitosa
+        data = response.json()
+        uf_value = data['uf']['valor']
+        return uf_value
+    except Exception as e:
+        st.error(f"Error al obtener el valor de la UF: {e}")
+        return None
 
 def show_left_panel():
     # Datos simulados del MOP por región
@@ -52,10 +65,15 @@ def show_left_panel():
     )
     st.sidebar.markdown("**Fuente:** Cámara Chilena de la Construcción (CChC).")
 
+    # Obtener el valor actual de la UF
+    uf_actual = get_current_uf()
+
     # Indicadores clave
     st.sidebar.markdown("### Indicadores Clave:")
     st.sidebar.markdown(f"- **Proyectos MOP Activos en {region}:** {proyectos_region}")
-    st.sidebar.markdown("- **UF Actual:** 36.000 CLP")
+    if uf_actual:
+        st.sidebar.markdown(f"- **UF Actual:** {uf_actual:,.2f} CLP")
+        st.sidebar.markdown("**Fuente:** [mindicador.cl](https://mindicador.cl/)")
 
 def show_public_vs_private_demand():
     # Datos para el gráfico de barras
@@ -98,3 +116,6 @@ def show_public_vs_private_demand():
     # Fuente del gráfico
     st.sidebar.markdown("**Fuente:** Análisis nacional del mercado de áridos 2024.")
 
+# Llamada a las funciones para mostrar los paneles
+show_left_panel()
+show_public_vs_private_demand()
