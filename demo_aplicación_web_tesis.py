@@ -1,10 +1,10 @@
 import streamlit as st
 from design import set_page_config, show_logo_and_title, show_instructions, show_faq, show_contact_info
 from projection_logic import upload_and_process_file, show_projection
-from side_panels import show_left_panel, show_right_panel
+from side_panels import show_left_panel, show_public_vs_private_demand
 
 # Configuración de la página
-st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="centered")
+st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="wide")
 
 # Configuración inicial del diseño de la aplicación
 show_logo_and_title()
@@ -17,16 +17,18 @@ data = upload_and_process_file()
 if data is not None:
     show_projection(data)
 
-# Mostrar título general antes de los paneles laterales
+# Mostrar título general antes de los gráficos
 st.markdown("## Análisis del Mercado y Demanda 📊")
 
-# Mostrar paneles laterales en columnas
-col1, col2 = st.columns([1, 2])  # La primera columna es más pequeña que la segunda
-with col1:
+# Mostrar gráficos de análisis de mercado
+with st.container():
+    # Panel lateral izquierdo: Tendencias del mercado
     show_left_panel()
-with col2:
-    show_right_panel()
+
+    # Gráfico de Demanda Pública vs Privada debajo
+    show_public_vs_private_demand()
 
 # Mostrar secciones adicionales (Preguntas Frecuentes y Contacto)
 show_faq()
 show_contact_info()
+
