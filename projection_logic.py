@@ -25,7 +25,7 @@ def upload_and_process_file():
 # Función para encontrar el mejor modelo ARIMA según el menor MAPE
 def optimize_arima(data, steps):
     p = range(1, 6)
-    d = [1,2]
+    d = [1, 2]
     q = range(1, 5)
     best_mape = float("inf")
     best_order = None
@@ -68,9 +68,9 @@ def show_projection(data):
         ).fit(smoothing_level=0.9, optimized=False).fittedvalues
 
         # Proyección de 3 meses fija para el gráfico principal
-        train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
-        model_3_months = ARIMA(train_total, order=(4, 1, 0)).fit()
-        forecast_3 = model_3_months.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
+        train_total = data_privado_total['CANTIDAD_SUAVIZADA']
+        best_model_3, best_order_3, best_mape_3 = optimize_arima(train_total, steps=3)
+        forecast_3 = best_model_3.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
         dates_3 = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
 
         # Visualizar datos históricos y suavizados
@@ -81,7 +81,7 @@ def show_projection(data):
         fig.add_trace(go.Scatter(x=data_privado_total.index, y=data_privado_total['CANTIDAD_SUAVIZADA'], 
                                  mode='lines', name='Datos Suavizados', line=dict(color='blue')))
         fig.add_trace(go.Scatter(x=dates_3, y=forecast_3, mode='lines+markers', 
-                                 name='Pronóstico 3 Meses', line=dict(dash='dash', color='green')))
+                                 name=f'Pronóstico 3 Meses (ARIMA{best_order_3})', line=dict(dash='dash', color='green')))
         fig.update_layout(
             title="Proyección Total de Demanda (3 meses)",
             xaxis_title="Fecha",
@@ -95,6 +95,7 @@ def show_projection(data):
         if projection_choice == "3 meses":
             st.write("#### Tabla de Proyección (3 meses)")
             st.table(pd.DataFrame({"Fecha": dates_3, "Proyección ARIMA (m³)": forecast_3}))
+            st.write(f"Mejor modelo ARIMA para 3 meses: {best_order_3}, con MAPE: {best_mape_3:.2f}%")
 
         elif projection_choice == "6 meses":
             best_model, best_order, best_mape = optimize_arima(data_privado_total['CANTIDAD_SUAVIZADA'], steps=6)
@@ -124,4 +125,5 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
+
 
