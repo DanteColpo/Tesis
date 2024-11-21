@@ -24,9 +24,9 @@ def upload_and_process_file():
 
 # Función para encontrar el mejor modelo ARIMA según el menor MAPE
 def optimize_arima(data, steps):
-    p = range(0, 6)
-    d = [1]
-    q = range(0, 4)
+    p = range(1, 6)
+    d = [1,2]
+    q = range(1, 5)
     best_mape = float("inf")
     best_order = None
     best_model = None
