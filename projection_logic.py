@@ -25,7 +25,7 @@ def upload_and_process_file():
 # Función para optimizar ARIMA
 def optimize_arima(data, steps):
     p = range(1, 6)
-    d = [1]
+    d = [1, 2]
     q = range(1, 4)
     best_mape = float("inf")
     best_order = None
@@ -54,9 +54,9 @@ def validate_fixed_arima(data, steps):
         forecast = model.forecast(steps=steps)
         test_values = data.iloc[-steps:]
         mape = mean_absolute_percentage_error(test_values, forecast) * 100
-        return model, fixed_order, mape
+        return model, fixed_order, mape, forecast
     except Exception:
-        return None, fixed_order, None
+        return None, fixed_order, None, None
 
 # Función para calcular la proyección de 3 meses
 def calculate_3_months_projection(data):
@@ -68,7 +68,7 @@ def calculate_3_months_projection(data):
 
     if data_privado.empty or len(data_privado) < 12:
         st.warning("No hay suficientes datos para el sector PRIVADO después del resampleo.")
-        return None, None, None, None
+        return None, None, None, None, None
 
     # Suavización
     data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(
@@ -80,16 +80,16 @@ def calculate_3_months_projection(data):
     best_model, best_order, best_mape = optimize_arima(train, steps=3)
 
     # Validar el modelo fijo (5, 1, 3)
-    fixed_model, fixed_order, fixed_mape = validate_fixed_arima(train, steps=3)
+    fixed_model, fixed_order, fixed_mape, fixed_forecast = validate_fixed_arima(train, steps=3)
 
-    # Seleccionar el mejor modelo
+    # Proyección del mejor modelo
     if fixed_model and fixed_mape < best_mape:
         final_model, final_order, final_mape = fixed_model, fixed_order, fixed_mape
+        forecast = fixed_forecast
     else:
         final_model, final_order, final_mape = best_model, best_order, best_mape
+        forecast = final_model.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
 
-    # Proyección
-    forecast = final_model.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
     dates = pd.date_range(start=data_privado.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
 
     return data_privado, forecast, dates, (final_order, final_mape)
@@ -133,3 +133,4 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
+
