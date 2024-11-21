@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
+from io import BytesIO
 
 # Función para cargar y procesar el archivo
 def upload_and_process_file():
@@ -21,18 +22,22 @@ def upload_and_process_file():
 
 # Función para generar proyecciones y descargar los resultados
 def download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12):
-    # Validar las longitudes de los datos antes de construir el DataFrame
-    if len(forecast_3) != len(dates_3):
-        st.error("Error: Las proyecciones para 3 meses y las fechas no coinciden en longitud.")
-        return
-    if len(forecast_6) != len(dates_6):
-        st.error("Error: Las proyecciones para 6 meses y las fechas no coinciden en longitud.")
-        return
-    if len(forecast_12) != len(dates_12):
-        st.error("Error: Las proyecciones para 12 meses y las fechas no coinciden en longitud.")
+    # Validar que las listas no estén vacías
+    if not all([forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12]):
+        st.error("Error: Una o más listas de proyecciones están vacías. Verifique los datos de entrada.")
         return
 
-    # Crear DataFrame con las proyecciones
+    # Validar que todas las listas tienen la misma longitud
+    if not (len(forecast_3) == len(dates_3) and
+            len(forecast_6) == len(dates_6) and
+            len(forecast_12) == len(dates_12)):
+        st.error("Error: Las longitudes de las listas de fechas y proyecciones no coinciden.")
+        st.write(f"Longitud forecast_3: {len(forecast_3)}, dates_3: {len(dates_3)}")
+        st.write(f"Longitud forecast_6: {len(forecast_6)}, dates_6: {len(dates_6)}")
+        st.write(f"Longitud forecast_12: {len(forecast_12)}, dates_12: {len(dates_12)}")
+        return
+
+    # Crear el DataFrame con las proyecciones
     output = pd.DataFrame({
         "Fecha (3 meses)": dates_3,
         "Proyección (3 meses)": forecast_3,
@@ -42,13 +47,19 @@ def download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, 
         "Proyección (12 meses)": forecast_12,
     })
 
+    # Guardar el DataFrame en un archivo Excel
+    output_buffer = BytesIO()
+    with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
+        output.to_excel(writer, index=False, sheet_name="Proyecciones")
+
     # Descargar como archivo Excel
     st.download_button(
         label="Descargar Proyecciones en Excel",
-        data=output.to_csv(index=False).encode('utf-8'),
+        data=output_buffer.getvalue(),
         file_name="proyecciones_demanda.xlsx",
-        mime="text/csv"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
 
 # Función para mostrar la proyección ARIMA general y desagregada
 def show_projection(data):
