@@ -22,43 +22,50 @@ def upload_and_process_file():
 
 # Función para generar proyecciones y descargar los resultados
 def download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12):
-    # Validar que las listas no estén vacías
+    # Validar las entradas
     if not all([forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12]):
-        st.error("Error: Una o más listas de proyecciones están vacías. Verifique los datos de entrada.")
+        st.error("Error: Una o más de las listas de proyecciones está vacía o no se generó correctamente.")
         return
 
-    # Validar que todas las listas tienen la misma longitud
-    if not (len(forecast_3) == len(dates_3) and
-            len(forecast_6) == len(dates_6) and
-            len(forecast_12) == len(dates_12)):
-        st.error("Error: Las longitudes de las listas de fechas y proyecciones no coinciden.")
-        st.write(f"Longitud forecast_3: {len(forecast_3)}, dates_3: {len(dates_3)}")
-        st.write(f"Longitud forecast_6: {len(forecast_6)}, dates_6: {len(dates_6)}")
-        st.write(f"Longitud forecast_12: {len(forecast_12)}, dates_12: {len(dates_12)}")
+    # Validar longitud de cada lista (asegúrate de que coincidan)
+    if len(forecast_3) != len(dates_3):
+        st.error("Error: Las proyecciones para 3 meses y las fechas no coinciden en longitud.")
+        return
+    if len(forecast_6) != len(dates_6):
+        st.error("Error: Las proyecciones para 6 meses y las fechas no coinciden en longitud.")
+        return
+    if len(forecast_12) != len(dates_12):
+        st.error("Error: Las proyecciones para 12 meses y las fechas no coinciden en longitud.")
         return
 
-    # Crear el DataFrame con las proyecciones
-    output = pd.DataFrame({
-        "Fecha (3 meses)": dates_3,
-        "Proyección (3 meses)": forecast_3,
-        "Fecha (6 meses)": dates_6,
-        "Proyección (6 meses)": forecast_6,
-        "Fecha (12 meses)": dates_12,
-        "Proyección (12 meses)": forecast_12,
-    })
+    # Crear el DataFrame
+    try:
+        output = pd.DataFrame({
+            "Fecha (3 meses)": dates_3,
+            "Proyección (3 meses)": forecast_3,
+            "Fecha (6 meses)": dates_6,
+            "Proyección (6 meses)": forecast_6,
+            "Fecha (12 meses)": dates_12,
+            "Proyección (12 meses)": forecast_12,
+        })
 
-    # Guardar el DataFrame en un archivo Excel
-    output_buffer = BytesIO()
-    with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
-        output.to_excel(writer, index=False, sheet_name="Proyecciones")
+        # Mostrar botón de descarga solo si el usuario lo selecciona
+        st.markdown("### Descargar Proyecciones")
+        if st.button("Generar archivo Excel"):
+            excel_buffer = BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+                output.to_excel(writer, index=False, sheet_name="Proyecciones")
 
-    # Descargar como archivo Excel
-    st.download_button(
-        label="Descargar Proyecciones en Excel",
-        data=output_buffer.getvalue(),
-        file_name="proyecciones_demanda.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+            # Descargar el archivo Excel
+            st.download_button(
+                label="Descargar Proyecciones en Excel",
+                data=excel_buffer.getvalue(),
+                file_name="proyecciones_demanda.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    except Exception as e:
+        st.error(f"Error al generar el archivo Excel: {e}")
+
 
 
 # Función para mostrar la proyección ARIMA general y desagregada
