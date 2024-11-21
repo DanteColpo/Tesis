@@ -28,8 +28,8 @@ def upload_and_process_file():
 # Función para optimizar ARIMA
 def optimize_arima(data, steps):
     p = range(1, 6)
-    d = [1, 2]
-    q = range(1, 4)
+    d = [1]
+    q = range(0, 4)
     best_mape = float("inf")
     best_order = None
     best_model = None
@@ -39,15 +39,17 @@ def optimize_arima(data, steps):
             model = ARIMA(data, order=order).fit()
             forecast = model.forecast(steps=steps)
             test_values = data.iloc[-steps:]
-            mape = mean_absolute_percentage_error(test_values, forecast) * 100  # En porcentaje
+            mape = mean_absolute_percentage_error(test_values, forecast) * 100
             if mape < best_mape:
                 best_mape = mape
                 best_order = order
                 best_model = model
-        except Exception:
+        except Exception as e:
+            st.write(f"Error con orden {order}: {e}")
             continue
 
     return best_model, best_order, best_mape
+
 
 # Función para calcular la proyección de 3 meses
 def calculate_3_months_projection(data):
