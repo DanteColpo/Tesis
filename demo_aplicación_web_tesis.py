@@ -13,7 +13,7 @@ show_instructions()
 # Mostrar mensaje inicial antes de cargar cualquier archivo
 st.info(
     "Por favor, sube un archivo Excel con las columnas requeridas: 'FECHA', 'SECTOR', 'MATERIAL' y 'CANTIDAD'. "
-    "Consulta el ejemplo visual más abajo si tienes dudas sobre el formato."
+    "Consulta el ejemplo visual más abajo si tienes dudas sobre el formato (Pregunta 5)."
 )
 
 # Cargar el archivo y procesar datos para la proyección
