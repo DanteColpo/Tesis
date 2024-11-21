@@ -23,141 +23,89 @@ def upload_and_process_file():
             return data
     return None
 
-# Función para mostrar la proyección ARIMA general y desagregada
-def show_projection(data):
-    st.write("Proyección ARIMA para el Sector Privado")
-
-    # Convertir la columna FECHA a tipo datetime y establecerla como índice
-    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
-    data = data.dropna(subset=['FECHA'])
-    data = data.set_index('FECHA')
-
-    # Filtrar solo los datos del sector privado, manteniendo 'MATERIAL'
-    data_privado = data[data['SECTOR'] == 'PRIVADO']
-
-    # Verificación de que hay suficientes datos
-    if data_privado.empty or len(data_privado) < 12:
-        st.warning("No hay suficientes datos para el sector PRIVADO después del resampleo.")
-        return
-
-    # Crear un diccionario para almacenar las proyecciones de cada tipo de material
-    forecast_results = {}
-
-    # Proyección para cada tipo de material
-    if 'MATERIAL' in data_privado.columns:
-        for product_type in data_privado['MATERIAL'].unique():
-            # Filtrar los datos por tipo de material
-            data_producto = data_privado[data_privado['MATERIAL'] == product_type]
-            data_producto = data_producto[['CANTIDAD']].resample('M').sum()
-
-            # Verificar que el material tenga suficientes datos
-            if data_producto['CANTIDAD'].count() < 6:
-                st.warning(f"El material '{product_type}' tiene datos insuficientes para una proyección fiable y se omitirá.")
-                continue
-
-            # Suavización exponencial
-            try:
-                data_producto['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_producto['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
-            except Exception as e:
-                st.warning(f"Error al aplicar suavización en '{product_type}': {str(e)}")
-                continue
-
-            # División en conjunto de entrenamiento y prueba
-            train = data_producto['CANTIDAD_SUAVIZADA'].iloc[:-3]
-            test = data_producto['CANTIDAD_SUAVIZADA'].iloc[-3:]
-
-            # Optimización de parámetros ARIMA en un rango limitado
-            best_mape = float("inf")
-            best_order = None
-            best_model = None
-
-            # Búsqueda de los mejores valores de p, d, q
-            p = range(1, 6)
-            d = [1]
-            q = range(0, 4)
-
-            for combination in itertools.product(p, d, q):
-                try:
-                    model = ARIMA(train, order=combination).fit()
-                    forecast = model.forecast(steps=3)
-                    mape = mean_absolute_percentage_error(test, forecast)
-
-                    if mape < best_mape:
-                        best_mape = mape
-                        best_order = combination
-                        best_model = model
-                except Exception as e:
-                    continue
-
-            # Generar proyección para los próximos 3 meses
-            forecast = best_model.forecast(steps=3)
-            forecast = forecast.apply(lambda x: max(0, x))  # Establecer valores negativos en 0
-            forecast_dates = pd.date_range(start=data_producto.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
-
-            # Guardar los resultados en el diccionario
-            forecast_results[product_type] = {
-                "Fecha": forecast_dates.strftime('%B %Y'),
-                "Proyección (m³)": forecast.round().astype(int)
-            }
-
-        # Mostrar tabla desglosada por tipo de material
-        st.write("### Proyección Desglosada por Tipo de Material")
-        for product_type, results in forecast_results.items():
-            st.write(f"#### {product_type}")
-            forecast_table = pd.DataFrame({
-                "Fecha": results["Fecha"],
-                "Proyección ARIMA (m³)": results["Proyección (m³)"]
-            })
-            st.write(forecast_table)
-    else:
-        st.warning("No se encontró la columna 'MATERIAL' en los datos. Solo se mostrará la proyección total.")
-
-    # Gráfico y proyección para el total
-    st.write("### Proyección Total de Demanda (Todos los Tipos de Material)")
-    data_privado_total = data_privado[['CANTIDAD']].resample('M').sum()
-    data_privado_total['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado_total['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
-    train_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[:-3]
-    test_total = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
-
-    # Optimización automática para el total
+# Función para optimizar ARIMA
+def optimize_arima(data, steps, p_range=(1, 6), d_range=[1], q_range=(0, 4)):
     best_mape = float("inf")
     best_order = None
     best_model = None
-    p = range(3, 6)
-    d = [1]
-    q = range(0, 4)
-    for combination in itertools.product(p, d, q):
+    for combination in itertools.product(range(*p_range), d_range, range(*q_range)):
         try:
-            model = ARIMA(train_total, order=combination).fit()
-            forecast = model.forecast(steps=3)
-            mape = mean_absolute_percentage_error(test_total, forecast)
+            model = ARIMA(data, order=combination).fit()
+            forecast = model.forecast(steps=steps)
+            test_values = data.iloc[-steps:]
+            mape = mean_absolute_percentage_error(test_values, forecast)
 
             if mape < best_mape:
                 best_mape = mape
                 best_order = combination
                 best_model = model
-        except Exception as e:
+        except Exception:
             continue
+    return best_model, best_order, best_mape
 
-    # Proyección con el mejor modelo para el total
-    forecast = best_model.forecast(steps=3)
-    forecast = forecast.apply(lambda x: max(0, x))  # Establecer valores negativos en 0
-    forecast_dates = pd.date_range(start=data_privado_total.index[-1] + pd.DateOffset(months=1), periods=3, freq='M')
+# Función general para generar proyecciones
+def generar_proyeccion(data, horizonte):
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+    data = data.dropna(subset=['FECHA'])
+    data = data.set_index('FECHA')
+    data_privado = data[data['SECTOR'] == 'PRIVADO']
+    data_privado = data_privado[['CANTIDAD']].resample('M').sum()
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
-    fig.add_trace(go.Scatter(x=test_total.index, y=test_total, mode='lines', name='Datos Reales Suavizados', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers', name=f'Pronóstico ARIMA{best_order}', line=dict(dash='dash', color='green')))
-    fig.update_layout(
-        title=f'Proyección ARIMA{best_order} sobre Datos Suavizados (Total)',
-        xaxis_title='Fecha',
-        yaxis_title='Cantidad de Material (m³)',
-        xaxis=dict(tickformat="%b %Y"),
-        hovermode="x"
-    )
-    st.plotly_chart(fig)
+    if data_privado.empty or len(data_privado) < horizonte:
+        st.warning("No hay suficientes datos para realizar la proyección.")
+        return None, None, None, None
 
-    # Mostrar el MAPE final del modelo de proyección total
-    st.write("### Error Promedio del Pronóstico (Total)")
-    st.write(f"Error Promedio Asociado (MAPE): {best_mape:.2%}")
+    # Suavización exponencial
+    data_privado['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data_privado['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+
+    # Optimizar ARIMA
+    train = data_privado['CANTIDAD_SUAVIZADA']
+    best_model, best_order, best_mape = optimize_arima(train, steps=horizonte)
+
+    # Generar proyección
+    forecast = best_model.forecast(steps=horizonte).apply(lambda x: max(0, x))
+    dates = pd.date_range(start=data_privado.index[-1] + pd.DateOffset(months=1), periods=horizonte, freq='M')
+
+    return data_privado, forecast, dates, (best_order, best_mape)
+
+# Función para mostrar las proyecciones en función del horizonte
+def show_projection(data):
+    st.write("### Proyección ARIMA para el Sector Privado")
+
+    horizonte = st.selectbox("Selecciona el horizonte de proyección:", [3, 6, 12])
+    data_privado, forecast, dates, arima_info = generar_proyeccion(data, horizonte)
+
+    if data_privado is not None:
+        # Visualización de resultados
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=data_privado.index, y=data_privado['CANTIDAD'],
+                                 mode='lines', name='Datos Originales', line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=data_privado.index, y=data_privado['CANTIDAD_SUAVIZADA'],
+                                 mode='lines', name='Datos Suavizados', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=dates, y=forecast, mode='lines+markers',
+                                 name=f'Pronóstico {horizonte} Meses (ARIMA{arima_info[0]})', line=dict(dash='dash', color='green')))
+        fig.update_layout(
+            title=f"Proyección Total de Demanda ({horizonte} meses)",
+            xaxis_title="Fecha",
+            yaxis_title="Cantidad de Material (m³)"
+        )
+        st.plotly_chart(fig)
+
+        # Mostrar tabla
+        st.write(f"### Tabla de Proyección ({horizonte} meses)")
+        forecast_table = pd.DataFrame({"Fecha": dates, "Proyección ARIMA (m³)": forecast.astype(int)})
+        st.write(forecast_table)
+
+        # Mostrar MAPE
+        st.write(f"**Mejor modelo ARIMA para {horizonte} meses: {arima_info[0]}, con MAPE: {arima_info[1]:.2%}**")
+
+# Código principal
+st.title("ProyeKTA+")
+st.subheader("Proyecta tu éxito")
+st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda para obtener proyecciones.")
+
+data = upload_and_process_file()
+if data is not None:
+    show_projection(data)
+
 
