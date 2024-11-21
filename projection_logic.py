@@ -6,7 +6,7 @@ from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
 
-
+# Función para cargar y procesar el archivo
 def upload_and_process_file():
     uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
     if uploaded_file is not None:
@@ -19,39 +19,38 @@ def upload_and_process_file():
             return data
     return None
 
-
-def generate_projections(model, steps, last_date):
-    try:
-        forecast = model.forecast(steps=steps).apply(lambda x: max(0, x))  # Evitar negativos
-        forecast_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=steps, freq='M')
-        return forecast, forecast_dates
-    except Exception as e:
-        st.error(f"Error al generar proyecciones: {e}")
-        return None, None
-
-
+# Función para generar proyecciones y descargar los resultados
 def download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12):
-    # Validar que todas las listas sean de igual longitud
-    if len(forecast_3) == len(dates_3) and len(forecast_6) == len(dates_6) and len(forecast_12) == len(dates_12):
-        output = pd.DataFrame({
-            "Fecha (3 meses)": dates_3,
-            "Proyección (3 meses)": forecast_3,
-            "Fecha (6 meses)": dates_6,
-            "Proyección (6 meses)": forecast_6,
-            "Fecha (12 meses)": dates_12,
-            "Proyección (12 meses)": forecast_12,
-        })
+    # Validar las longitudes de los datos antes de construir el DataFrame
+    if len(forecast_3) != len(dates_3):
+        st.error("Error: Las proyecciones para 3 meses y las fechas no coinciden en longitud.")
+        return
+    if len(forecast_6) != len(dates_6):
+        st.error("Error: Las proyecciones para 6 meses y las fechas no coinciden en longitud.")
+        return
+    if len(forecast_12) != len(dates_12):
+        st.error("Error: Las proyecciones para 12 meses y las fechas no coinciden en longitud.")
+        return
 
-        st.download_button(
-            label="Descargar Proyecciones en Excel",
-            data=output.to_csv(index=False).encode('utf-8'),
-            file_name="proyecciones_demanda.csv",
-            mime="text/csv"
-        )
-    else:
-        st.error("Las longitudes de las proyecciones y las fechas no coinciden. Por favor, revise los datos.")
+    # Crear DataFrame con las proyecciones
+    output = pd.DataFrame({
+        "Fecha (3 meses)": dates_3,
+        "Proyección (3 meses)": forecast_3,
+        "Fecha (6 meses)": dates_6,
+        "Proyección (6 meses)": forecast_6,
+        "Fecha (12 meses)": dates_12,
+        "Proyección (12 meses)": forecast_12,
+    })
 
+    # Descargar como archivo Excel
+    st.download_button(
+        label="Descargar Proyecciones en Excel",
+        data=output.to_csv(index=False).encode('utf-8'),
+        file_name="proyecciones_demanda.xlsx",
+        mime="text/csv"
+    )
 
+# Función para mostrar la proyección ARIMA general y desagregada
 def show_projection(data):
     st.write("Proyección ARIMA para el Sector Privado")
 
@@ -75,34 +74,62 @@ def show_projection(data):
     last_date = data_privado_total.index[-1]
 
     # Crear modelo ARIMA
-    try:
-        best_model = ARIMA(train_total, order=(4, 1, 0)).fit()
-    except Exception as e:
-        st.error(f"Error al ajustar el modelo ARIMA: {e}")
-        return
+    best_model = ARIMA(train_total, order=(4, 1, 0)).fit()
 
-    # Generar proyecciones
-    forecast_3, dates_3 = generate_projections(best_model, 3, last_date)
-    forecast_6, dates_6 = generate_projections(best_model, 6, last_date)
-    forecast_12, dates_12 = generate_projections(best_model, 12, last_date)
+    # Generar proyección de 3 meses
+    forecast_3 = best_model.forecast(steps=3).apply(lambda x: max(0, x))
+    dates_3 = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=3, freq='M')
 
-    if None in (forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12):
-        st.error("No se pudieron generar todas las proyecciones.")
-        return
-
-    # Descargar las proyecciones
-    download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12)
-
-    # Mostrar gráfico
-    st.write("### Proyección Total de Demanda")
+    # Mostrar gráfico de los 3 meses
+    st.write("### Proyección Total de Demanda (3 meses)")
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=train_total.index, y=train_total, mode='lines', name='Datos de Entrenamiento Suavizados'))
     fig.add_trace(go.Scatter(x=dates_3, y=forecast_3, mode='lines+markers', name='Pronóstico 3 Meses', line=dict(dash='dash', color='green')))
-    fig.add_trace(go.Scatter(x=dates_6, y=forecast_6[:6], mode='lines+markers', name='Pronóstico 6 Meses', line=dict(dash='dot', color='orange')))
-    fig.add_trace(go.Scatter(x=dates_12, y=forecast_12[:12], mode='lines+markers', name='Pronóstico 12 Meses', line=dict(dash='longdash', color='blue')))
     fig.update_layout(
-        title="Proyección Total de Demanda",
+        title="Proyección Total de Demanda (3 meses)",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)"
     )
     st.plotly_chart(fig)
+
+    # Mostrar tabla de proyección de 3 meses
+    st.write("### Tabla de Proyección (3 meses)")
+    table_3 = pd.DataFrame({
+        "Fecha": dates_3.strftime('%B %Y'),
+        "Proyección ARIMA (m³)": forecast_3.round().astype(int)
+    })
+    st.write(table_3)
+
+    # Desplegable para elegir 6 o 12 meses adicionales
+    st.write("### Proyección Extendida")
+    option = st.selectbox(
+        "Seleccione el periodo de proyección adicional",
+        ("6 meses", "12 meses")
+    )
+
+    if option == "6 meses":
+        steps = 6
+    else:
+        steps = 12
+
+    # Generar proyección extendida
+    forecast_extended = best_model.forecast(steps=steps).apply(lambda x: max(0, x))
+    dates_extended = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=steps, freq='M')
+
+    # Mostrar tabla de proyección extendida
+    st.write(f"### Tabla de Proyección ({steps} meses)")
+    table_extended = pd.DataFrame({
+        "Fecha": dates_extended.strftime('%B %Y'),
+        "Proyección ARIMA (m³)": forecast_extended.round().astype(int)
+    })
+    st.write(table_extended)
+
+    # Descargar todas las proyecciones
+    st.write("### Descargar Proyecciones")
+    download_projections(
+        forecast_3, dates_3,
+        forecast_extended[:6] if steps == 12 else forecast_extended, 
+        dates_extended[:6] if steps == 12 else dates_extended, 
+        forecast_extended if steps == 12 else [], 
+        dates_extended if steps == 12 else []
+    )
