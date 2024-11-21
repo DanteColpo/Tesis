@@ -22,33 +22,10 @@ def upload_and_process_file():
             st.error(f"Error al procesar el archivo: {e}")
     return None
 
-# Función para generar proyecciones y permitir descarga
-def download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12):
-    try:
-        # Crear el DataFrame con las proyecciones
-        output = pd.DataFrame({
-            "Fecha (3 meses)": dates_3,
-            "Proyección (3 meses)": forecast_3.astype(int),
-            "Fecha (6 meses)": dates_6,
-            "Proyección (6 meses)": forecast_6.astype(int),
-            "Fecha (12 meses)": dates_12,
-            "Proyección (12 meses)": forecast_12.astype(int),
-        })
-
-        # Convertir DataFrame a archivo Excel
-        output_buffer = BytesIO()
-        with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
-            output.to_excel(writer, index=False, sheet_name="Proyecciones")
-
-        # Botón de descarga
-        st.download_button(
-            label="Descargar Proyecciones en Excel",
-            data=output_buffer.getvalue(),
-            file_name="proyecciones_demanda.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    except Exception as e:
-        st.error(f"Error al generar el archivo de descarga: {e}")
+# Función para calcular MAPE
+def calculate_mape(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
 # Función para mostrar la proyección ARIMA
 def show_projection(data):
@@ -74,9 +51,9 @@ def show_projection(data):
 
         # Generar proyecciones con ARIMA
         best_model = ARIMA(train_total, order=(4, 1, 0)).fit()
-        forecast_3 = best_model.forecast(steps=3).apply(lambda x: max(0, x))
-        forecast_6 = best_model.forecast(steps=6).apply(lambda x: max(0, x))
-        forecast_12 = best_model.forecast(steps=12).apply(lambda x: max(0, x))
+        forecast_3 = best_model.forecast(steps=3).apply(lambda x: max(0, x)).astype(int)
+        forecast_6 = best_model.forecast(steps=6).apply(lambda x: max(0, x)).astype(int)
+        forecast_12 = best_model.forecast(steps=12).apply(lambda x: max(0, x)).astype(int)
 
         # Fechas para proyecciones
         last_date = data_privado_total.index[-1]
@@ -84,8 +61,13 @@ def show_projection(data):
         dates_6 = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=6, freq='M')
         dates_12 = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=12, freq='M')
 
+        # Calcular MAPE para los 3 meses
+        actual_values = data_privado_total['CANTIDAD_SUAVIZADA'].iloc[-3:]
+        mape = calculate_mape(actual_values, forecast_3[:3])
+        confidence = 100 - mape
+
         # Visualizar datos históricos y suavizados
-        st.write("### Proyección Total de Demanda (3 meses)")
+        st.write("### Proyección Total de Demanda")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=data_privado_total.index, y=data_privado_total['CANTIDAD'], 
                                  mode='lines', name='Datos Originales', line=dict(color='red')))
@@ -94,23 +76,31 @@ def show_projection(data):
         fig.add_trace(go.Scatter(x=dates_3, y=forecast_3, mode='lines+markers', 
                                  name='Pronóstico 3 Meses', line=dict(dash='dash', color='green')))
         fig.update_layout(
-            title="Proyección Total de Demanda (3 meses)",
+            title="Proyección Total de Demanda",
             xaxis_title="Fecha",
             yaxis_title="Cantidad de Material (m³)"
         )
         st.plotly_chart(fig)
 
-        # Tablas de proyecciones
-        st.write("#### Tabla de Proyección (3 meses)")
-        st.table(pd.DataFrame({"Fecha": dates_3, "Proyección ARIMA (m³)": forecast_3.astype(int)}))
+        # Selección de meses para mostrar
+        projection_choice = st.selectbox("Selecciona el periodo de proyección:", [3, 6, 12])
 
-        st.write("#### Tabla de Proyección (12 meses)")
-        st.table(pd.DataFrame({"Fecha": dates_12, "Proyección ARIMA (m³)": forecast_12.astype(int)}))
+        if projection_choice == 3:
+            st.write("#### Tabla de Proyección (3 meses)")
+            st.table(pd.DataFrame({"Fecha": dates_3, "Proyección ARIMA (m³)": forecast_3}))
+        elif projection_choice == 6:
+            st.write("#### Tabla de Proyección (6 meses)")
+            st.table(pd.DataFrame({"Fecha": dates_6, "Proyección ARIMA (m³)": forecast_6}))
+        elif projection_choice == 12:
+            st.write("#### Tabla de Proyección (12 meses)")
+            st.table(pd.DataFrame({"Fecha": dates_12, "Proyección ARIMA (m³)": forecast_12}))
 
-        # Opción para descargar datos
-        st.write("### Descargar Proyecciones")
-        if st.button("Descargar datos en Excel"):
-            download_projections(forecast_3, dates_3, forecast_6, dates_6, forecast_12, dates_12)
+        # Texto informativo sobre MAPE y confiabilidad
+        st.markdown(
+            f"**La proyección tiene un MAPE de {mape:.2f}%**, lo que equivale a un "
+            f"**{confidence:.2f}% de confiabilidad** para la proyección de los 3 meses. "
+            f"En el caso de una mayor proyección, la confiabilidad se ve reducida."
+        )
     except Exception as e:
         st.error(f"Error al calcular las proyecciones: {e}")
 
@@ -123,5 +113,6 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
+
 
 
