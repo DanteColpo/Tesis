@@ -16,6 +16,12 @@ data = upload_and_process_file()
 # Si hay datos cargados, mostrar proyección
 if data is not None:
     show_projection(data)
+else:
+    st.warning(
+        "No se han cargado datos válidos. "
+        "Por favor, sube un archivo Excel con las columnas requeridas: 'FECHA', 'SECTOR', 'MATERIAL' y 'CANTIDAD'."
+    )
+    st.image("Ejemplo Excel.png", caption="Ejemplo del formato correcto para el archivo Excel")
 
 # Mostrar título general antes de los gráficos
 st.markdown("## Análisis del Mercado y Demanda 📊")
@@ -31,5 +37,3 @@ with st.sidebar:
 # Mostrar secciones adicionales (Preguntas Frecuentes y Contacto)
 show_faq()
 show_contact_info()
-
-
