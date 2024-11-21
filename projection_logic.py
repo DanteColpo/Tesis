@@ -25,8 +25,8 @@ def upload_and_process_file():
 # Función para optimizar ARIMA
 def optimize_arima(data, steps):
     p = range(1, 6)
-    d = [1]
-    q = range(0, 4)
+    d = [1, 2]
+    q = range(1, 6)
     best_mape = float("inf")
     best_order = None
     best_model = None
