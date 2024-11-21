@@ -7,6 +7,9 @@ from statsmodels.tsa.arima.model import ARIMA
 from itertools import product
 from sklearn.metrics import mean_absolute_percentage_error
 
+# Configuración de la página
+st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="wide")
+
 # Función para cargar y procesar el archivo
 def upload_and_process_file():
     uploaded_file = st.file_uploader("Subir archivo", type=["xlsx"])
@@ -112,6 +115,7 @@ st.markdown("Sube un archivo Excel (.xlsx) con los datos históricos de demanda 
 data = upload_and_process_file()
 if data is not None:
     show_projection(data)
+
 
 
 
