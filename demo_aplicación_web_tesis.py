@@ -10,18 +10,29 @@ st.set_page_config(page_title="ProyeKTA+", page_icon="📊", layout="wide")
 show_logo_and_title()
 show_instructions()
 
+# Mostrar mensaje inicial antes de cargar cualquier archivo
+st.info(
+    "Por favor, sube un archivo Excel con las columnas requeridas: 'FECHA', 'SECTOR', 'MATERIAL' y 'CANTIDAD'. "
+    "Consulta el ejemplo visual más abajo si tienes dudas sobre el formato."
+)
+
 # Cargar el archivo y procesar datos para la proyección
 data = upload_and_process_file()
 
-# Si hay datos cargados, mostrar proyección
+# Validación y manejo de datos
 if data is not None:
-    show_projection(data)
+    # Verificar si las columnas necesarias existen
+    required_columns = {'FECHA', 'SECTOR', 'MATERIAL', 'CANTIDAD'}
+    if not required_columns.issubset(data.columns):
+        st.warning(
+            "El archivo cargado no contiene las columnas requeridas: 'FECHA', 'SECTOR', 'MATERIAL' y 'CANTIDAD'. "
+            "Por favor, verifica el archivo y asegúrate de que cumpla con el formato esperado."
+        )
+        st.image("Ejemplo Excel.png", caption="Ejemplo del formato correcto para el archivo Excel")
+    else:
+        show_projection(data)
 else:
-    st.warning(
-        "No se han cargado datos válidos. "
-        "Por favor, sube un archivo Excel con las columnas requeridas: 'FECHA', 'SECTOR', 'MATERIAL' y 'CANTIDAD'."
-    )
-    st.image("Ejemplo Excel.png", caption="Ejemplo del formato correcto para el archivo Excel")
+    st.info("Esperando que se cargue un archivo Excel válido...")
 
 # Mostrar título general antes de los gráficos
 st.markdown("## Análisis del Mercado y Demanda 📊")
@@ -37,3 +48,4 @@ with st.sidebar:
 # Mostrar secciones adicionales (Preguntas Frecuentes y Contacto)
 show_faq()
 show_contact_info()
+
