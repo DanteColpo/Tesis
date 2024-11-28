@@ -5,9 +5,6 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_percentage_error
 import itertools
 
-# Definir alpha globalmente para la suavización exponencial
-alpha = 0.9
-
 def preprocess_data(data):
     """
     Preprocesar los datos cargados, filtrando por sector privado
@@ -19,13 +16,33 @@ def preprocess_data(data):
     data_privado = data[data['SECTOR'] == 'PRIVADO']
     return data_privado[['CANTIDAD']].resample('MS').sum()  # Resampleo mensual con suma
 
+def find_best_alpha(data):
+    """
+    Encuentra el mejor valor de alpha para la suavización exponencial
+    basado en el MAPE más bajo.
+    """
+    alphas = np.linspace(0.01, 1.0, 10)
+    best_alpha = None
+    best_mape = float('inf')
+
+    for alpha in alphas:
+        model = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=alpha, optimized=False)
+        fitted_values = model.fittedvalues
+        mape = mean_absolute_percentage_error(data['CANTIDAD'], fitted_values)
+        if mape < best_mape:
+            best_mape = mape
+            best_alpha = alpha
+
+    return best_alpha
+
 def sarima_forecast(data, horizon):
     """
     Realiza proyecciones SARIMA en base a los datos proporcionados.
     Devuelve la proyección, las fechas proyectadas y el MAPE asociado.
     """
-    # Suavización exponencial
-    data['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+    # Encontrar el mejor alpha para suavización exponencial
+    best_alpha = find_best_alpha(data)
+    data['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
     # División en conjunto de entrenamiento y prueba
     train = data['CANTIDAD_SUAVIZADA'].iloc[:-horizon]
@@ -74,7 +91,7 @@ def sarima_forecast(data, horizon):
                                     best_order = (p, d, q)
                                     best_seasonal_order = (P, D, Q, m)
                                     best_model = result
-                            except Exception as e:
+                            except Exception:
                                 continue
 
     # Generar la proyección con el mejor modelo
@@ -90,7 +107,13 @@ def run_sarima_projection(data, horizon=3):
     Devuelve las proyecciones y las métricas asociadas.
     """
     data_processed = preprocess_data(data)
+    
+    # Validar que haya suficientes datos para realizar la proyección
+    if len(data_processed) < horizon + 1:
+        raise ValueError("Datos insuficientes para realizar la proyección SARIMA.")
+    
     forecast, forecast_dates, best_order, best_seasonal_order, mape = sarima_forecast(data_processed, horizon)
+    
     return {
         "forecast": forecast,
         "forecast_dates": forecast_dates,
