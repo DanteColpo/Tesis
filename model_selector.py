@@ -3,8 +3,9 @@
 import pandas as pd
 import plotly.graph_objects as go
 from arima_model import arima_forecast
-from linear_projection import linear_projection
+from linear_projection import run_linear_projection  # Nota: Cambié el nombre al correcto
 from sarima_model import sarima_forecast
+
 
 def select_best_model(data, horizon):
     """
@@ -34,11 +35,11 @@ def select_best_model(data, horizon):
 
     # Proyección con Proyección Lineal
     try:
-        forecast_linear, dates_linear, mape_linear = linear_projection(data, horizon)
+        linear_results = run_linear_projection(data, horizon)
         results['Linear Projection'] = {
-            'forecast': forecast_linear,
-            'dates': dates_linear,
-            'mape': mape_linear
+            'forecast': linear_results["forecast"],
+            'dates': linear_results["forecast_dates"],
+            'mape': linear_results["mape"]
         }
     except Exception as e:
         print(f"Error ejecutando Proyección Lineal: {e}")
@@ -75,6 +76,7 @@ def select_best_model(data, horizon):
         'all_results': results  # Incluye todos los resultados
     }
 
+
 def generate_graph(data, forecast, forecast_dates, best_model):
     """
     Genera un gráfico interactivo de los datos históricos y la proyección seleccionada.
@@ -100,6 +102,7 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         hovermode="x"
     )
     return fig
+
 
 def main(data, horizon):
     """
@@ -131,6 +134,7 @@ def main(data, horizon):
     print(f"\nModelo seleccionado: {best_model}")
     print(f"MAPE asociado: {mape:.2%}")
     fig.show()
+
 
 # Si quieres probar el script de forma independiente:
 if __name__ == "__main__":
