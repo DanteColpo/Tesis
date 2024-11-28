@@ -4,9 +4,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_percentage_error
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 
-# Definir alpha globalmente para la suavización exponencial
-alpha = 0.9
-
 def preprocess_data(data):
     """
     Preprocesar los datos cargados, filtrando por sector privado
@@ -18,13 +15,33 @@ def preprocess_data(data):
     data_privado = data[data['SECTOR'] == 'PRIVADO']
     return data_privado[['CANTIDAD']].resample('MS').sum()  # Resampleo mensual con suma
 
+def find_best_alpha(data):
+    """
+    Encuentra el mejor valor de alpha para la suavización exponencial
+    basado en el MAPE más bajo.
+    """
+    alphas = np.linspace(0.01, 1.0, 10)
+    best_alpha = None
+    best_mape = float('inf')
+
+    for alpha in alphas:
+        model = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=alpha, optimized=False)
+        fitted_values = model.fittedvalues
+        mape = mean_absolute_percentage_error(data['CANTIDAD'], fitted_values)
+        if mape < best_mape:
+            best_mape = mape
+            best_alpha = alpha
+
+    return best_alpha
+
 def linear_forecast(data, horizon):
     """
     Realiza proyecciones lineales en base a los datos proporcionados.
     Devuelve la proyección, las fechas proyectadas y el MAPE asociado.
     """
-    # Suavización exponencial
-    data['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=alpha, optimized=False).fittedvalues
+    # Encontrar el mejor alpha para suavización exponencial
+    best_alpha = find_best_alpha(data)
+    data['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
     # División en conjunto de entrenamiento y prueba
     train = data['CANTIDAD_SUAVIZADA'].iloc[:-horizon]
@@ -54,7 +71,13 @@ def run_linear_projection(data, horizon=3):
     Devuelve las proyecciones y las métricas asociadas.
     """
     data_processed = preprocess_data(data)
+    
+    # Validar que haya suficientes datos para realizar la proyección
+    if len(data_processed) < horizon + 1:
+        raise ValueError("Datos insuficientes para realizar la proyección lineal.")
+    
     forecast, forecast_dates, mape = linear_forecast(data_processed, horizon)
+    
     return {
         "forecast": forecast,
         "forecast_dates": forecast_dates,
