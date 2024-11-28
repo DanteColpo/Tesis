@@ -1,21 +1,21 @@
-# Esqueleto inicial de model_selector.py
+# model_selector.py
 
-# Importar los modelos
+import pandas as pd
+import plotly.graph_objects as go
 from arima_model import arima_forecast
 from linear_projection import linear_projection
 from sarima_model import sarima_forecast
 
-# Función para seleccionar el mejor modelo basado en MAPE
 def select_best_model(data, horizon):
     """
     Evalúa múltiples modelos de proyección y selecciona el mejor basado en el MAPE más bajo.
 
     Args:
-        data (pd.DataFrame): Datos de entrada.
+        data (pd.DataFrame): Datos de entrada (con columna 'CANTIDAD').
         horizon (int): Horizonte de proyección (número de meses).
 
     Returns:
-        dict: Resultados del modelo seleccionado, incluyendo proyección, MAPE, y detalles del modelo.
+        dict: Resultados del modelo seleccionado, incluyendo proyección, MAPE y detalles del modelo.
     """
     # Diccionario para almacenar resultados
     results = {}
@@ -50,10 +50,74 @@ def select_best_model(data, horizon):
     # Encontrar el modelo con menor MAPE
     best_model = min(results, key=lambda x: results[x]['mape'])
 
-    # Retornar los resultados del mejor modelo
     return {
         'best_model': best_model,
         'details': results[best_model],
         'all_results': results  # Opcional: incluir detalles de todos los modelos
     }
 
+def generate_graph(data, forecast, forecast_dates, best_model):
+    """
+    Genera un gráfico interactivo de los datos históricos y la proyección seleccionada.
+
+    Args:
+        data (pd.DataFrame): Datos históricos (con columna 'CANTIDAD').
+        forecast (pd.Series): Valores proyectados.
+        forecast_dates (pd.DatetimeIndex): Fechas asociadas a la proyección.
+        best_model (str): Nombre del modelo seleccionado.
+
+    Returns:
+        plotly.graph_objects.Figure: Gráfico generado.
+    """
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data.index, y=data['CANTIDAD'], mode='lines', name='Datos Históricos'))
+    fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers',
+                             name=f'Proyección {best_model}', line=dict(dash='dash', color='green')))
+    fig.update_layout(
+        title=f"Proyección de Demanda ({best_model})",
+        xaxis_title="Fecha",
+        yaxis_title="Cantidad de Material (m³)",
+        hovermode="x"
+    )
+    return fig
+
+def main(data, horizon):
+    """
+    Función principal para ejecutar el selector de modelos y generar proyecciones.
+
+    Args:
+        data (pd.DataFrame): Datos históricos.
+        horizon (int): Horizonte de proyección (número de meses).
+    """
+    # Seleccionar el mejor modelo
+    results = select_best_model(data, horizon)
+    best_model = results['best_model']
+    forecast = results['details']['forecast']
+    forecast_dates = results['details']['dates']
+    mape = results['details']['mape']
+
+    # Generar gráfico
+    fig = generate_graph(data, forecast, forecast_dates, best_model)
+
+    # Mostrar resultados
+    print(f"Modelo seleccionado: {best_model}")
+    print(f"MAPE asociado: {mape:.2%}")
+    fig.show()
+
+# Si quieres probar el script de forma independiente:
+if __name__ == "__main__":
+    # Cargar datos de ejemplo
+    file_path = "Base de Datos Áridos.xlsx"
+    data = pd.read_excel(file_path)
+
+    # Preprocesar datos para el sector PRIVADO
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+    data = data.dropna(subset=['FECHA'])
+    data.set_index('FECHA', inplace=True)
+    data_privado = data[data['SECTOR'] == 'PRIVADO'][['CANTIDAD']].resample('M').sum()
+
+    # Definir horizonte
+    horizon = 3
+
+    # Ejecutar el selector de modelos
+    main(data_privado, horizon)
