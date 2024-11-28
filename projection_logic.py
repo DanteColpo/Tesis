@@ -122,13 +122,13 @@ def show_projection(data):
 
     st.write(f"### Error Promedio del Pronóstico ({horizon} meses)")
     st.write(f"Error Promedio Asociado (MAPE): {best_mape:.2%}")
-
+### De usarlo alguna vez después, sacar los #
 # Streamlit app
-def main():
-    st.title("Proyección de Demanda ARIMA")
-    data = upload_and_process_file()
-    if data is not None:
-        show_projection(data)
+#def main():
+   # st.title("Proyección de Demanda ARIMA")
+    #data = upload_and_process_file()
+    #if data is not None:
+    #    show_projection(data)
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()
