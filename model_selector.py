@@ -21,39 +21,53 @@ def select_best_model(data, horizon):
     results = {}
 
     # Proyección con ARIMA
-    forecast_arima, dates_arima, order_arima, mape_arima = arima_forecast(data, horizon)
-    results['ARIMA'] = {
-        'forecast': forecast_arima,
-        'dates': dates_arima,
-        'order': order_arima,
-        'mape': mape_arima
-    }
+    try:
+        forecast_arima, dates_arima, order_arima, mape_arima = arima_forecast(data, horizon)
+        results['ARIMA'] = {
+            'forecast': forecast_arima,
+            'dates': dates_arima,
+            'order': order_arima,
+            'mape': mape_arima
+        }
+    except Exception as e:
+        print(f"Error ejecutando ARIMA: {e}")
 
     # Proyección con Proyección Lineal
-    forecast_linear, dates_linear, mape_linear = linear_projection(data, horizon)
-    results['Linear Projection'] = {
-        'forecast': forecast_linear,
-        'dates': dates_linear,
-        'mape': mape_linear
-    }
+    try:
+        forecast_linear, dates_linear, mape_linear = linear_projection(data, horizon)
+        results['Linear Projection'] = {
+            'forecast': forecast_linear,
+            'dates': dates_linear,
+            'mape': mape_linear
+        }
+    except Exception as e:
+        print(f"Error ejecutando Proyección Lineal: {e}")
 
     # Proyección con SARIMA
-    forecast_sarima, dates_sarima, order_sarima, seasonal_order_sarima, mape_sarima = sarima_forecast(data, horizon)
-    results['SARIMA'] = {
-        'forecast': forecast_sarima,
-        'dates': dates_sarima,
-        'order': order_sarima,
-        'seasonal_order': seasonal_order_sarima,
-        'mape': mape_sarima
-    }
+    try:
+        forecast_sarima, dates_sarima, order_sarima, seasonal_order_sarima, mape_sarima = sarima_forecast(data, horizon)
+        results['SARIMA'] = {
+            'forecast': forecast_sarima,
+            'dates': dates_sarima,
+            'order': order_sarima,
+            'seasonal_order': seasonal_order_sarima,
+            'mape': mape_sarima
+        }
+    except Exception as e:
+        print(f"Error ejecutando SARIMA: {e}")
+
+    # Imprimir MAPEs para verificar la ejecución de los modelos
+    print("Los % de errores asociados en los modelos fue:")
+    for model_name, details in results.items():
+        print(f"MAPE de {model_name}: {details['mape']:.2%}")
 
     # Encontrar el modelo con menor MAPE
-    best_model = min(results, key=lambda x: results[x]['mape'])
+    best_model = min(results, key=lambda x: results[x]['mape']) if results else None
 
     return {
         'best_model': best_model,
-        'details': results[best_model],
-        'all_results': results  # Opcional: incluir detalles de todos los modelos
+        'details': results[best_model] if best_model else None,
+        'all_results': results  # Incluye todos los resultados
     }
 
 def generate_graph(data, forecast, forecast_dates, best_model):
@@ -77,6 +91,7 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         title=f"Proyección de Demanda ({best_model})",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
+        template='plotly_dark',
         hovermode="x"
     )
     return fig
@@ -89,8 +104,16 @@ def main(data, horizon):
         data (pd.DataFrame): Datos históricos.
         horizon (int): Horizonte de proyección (número de meses).
     """
+    if data is None or data.empty:
+        print("Datos inválidos o vacíos. No se puede proceder con la proyección.")
+        return
+
     # Seleccionar el mejor modelo
     results = select_best_model(data, horizon)
+    if not results['best_model']:
+        print("No se pudo seleccionar un modelo válido.")
+        return
+
     best_model = results['best_model']
     forecast = results['details']['forecast']
     forecast_dates = results['details']['dates']
