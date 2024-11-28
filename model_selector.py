@@ -56,17 +56,22 @@ def select_best_model(data, horizon):
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
 
+    # Verificar si al menos un modelo se ejecutó correctamente
+    if not results:
+        print("No se pudo ejecutar ningún modelo. Por favor, verifica los datos y los parámetros.")
+        return None
+
     # Imprimir MAPEs para verificar la ejecución de los modelos
-    print("Los % de errores asociados en los modelos fue:")
+    print("\nLos % de errores asociados en los modelos fue:")
     for model_name, details in results.items():
-        print(f"MAPE de {model_name}: {details['mape']:.2%}")
+        print(f"- MAPE de {model_name}: {details['mape']:.2%}")
 
     # Encontrar el modelo con menor MAPE
-    best_model = min(results, key=lambda x: results[x]['mape']) if results else None
+    best_model = min(results, key=lambda x: results[x]['mape'])
 
     return {
         'best_model': best_model,
-        'details': results[best_model] if best_model else None,
+        'details': results[best_model],
         'all_results': results  # Incluye todos los resultados
     }
 
@@ -110,7 +115,7 @@ def main(data, horizon):
 
     # Seleccionar el mejor modelo
     results = select_best_model(data, horizon)
-    if not results['best_model']:
+    if not results or not results['best_model']:
         print("No se pudo seleccionar un modelo válido.")
         return
 
@@ -123,7 +128,7 @@ def main(data, horizon):
     fig = generate_graph(data, forecast, forecast_dates, best_model)
 
     # Mostrar resultados
-    print(f"Modelo seleccionado: {best_model}")
+    print(f"\nModelo seleccionado: {best_model}")
     print(f"MAPE asociado: {mape:.2%}")
     fig.show()
 
