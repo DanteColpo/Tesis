@@ -3,7 +3,7 @@ import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_percentage_error
-import itertools
+from itertools import product
 
 def preprocess_data(data):
     """
@@ -55,49 +55,50 @@ def sarima_forecast(data, horizon):
     P_values = [0, 1, 2]
     D_values = [0, 1]
     Q_values = [0, 1, 2]
-    m = 12  # Periodo estacional de 12 meses
+    m = 12  # Periodo estacional de 3 meses
 
     # Variables para almacenar el mejor modelo y resultados
     best_mape = float('inf')
     best_order = None
     best_seasonal_order = None
+    best_model = None
     best_forecast = None
 
     # Bucle para optimizar parámetros SARIMA
-    for p in p_values:
-        for d in d_values:
-            for q in q_values:
-                for P in P_values:
-                    for D in D_values:
-                        for Q in Q_values:
-                            try:
-                                # Definir y ajustar el modelo SARIMA
-                                model = SARIMAX(
-                                    train,
-                                    order=(p, d, q),
-                                    seasonal_order=(P, D, Q, m),
-                                    enforce_stationarity=False,
-                                    enforce_invertibility=False
-                                )
-                                result = model.fit(disp=False)
-                                forecast = result.predict(start=len(train), end=len(train) + len(test) - 1)
+    for (p, d, q), (P, D, Q) in product(product(p_values, d_values, q_values), product(P_values, D_values, Q_values)):
+        try:
+            # Definir y ajustar el modelo SARIMA
+            model = SARIMAX(
+                train,
+                order=(p, d, q),
+                seasonal_order=(P, D, Q, m),
+                enforce_stationarity=False,
+                enforce_invertibility=False
+            )
+            result = model.fit(disp=False)
 
-                                # Calcular MAPE
-                                mape = mean_absolute_percentage_error(test, forecast)
+            # Generar predicciones
+            forecast = result.predict(start=len(train), end=len(train) + len(test) - 1)
 
-                                # Actualizar el mejor modelo si el MAPE es menor
-                                if mape < best_mape:
-                                    best_mape = mape
-                                    best_order = (p, d, q)
-                                    best_seasonal_order = (P, D, Q, m)
-                                    best_forecast = forecast
-                            except Exception as e:
-                                continue
+            # Calcular el MAPE
+            mape = mean_absolute_percentage_error(test, forecast)
+
+            # Actualizar el mejor modelo si el MAPE es menor
+            if mape < best_mape:
+                best_mape = mape
+                best_order = (p, d, q)
+                best_seasonal_order = (P, D, Q, m)
+                best_model = result
+                best_forecast = forecast
+        except Exception as e:
+            continue
 
     # Generar la proyección con el mejor modelo
+    future_forecast = best_model.predict(start=len(train), end=len(train) + horizon - 1)
+    future_forecast = np.maximum(future_forecast, 0)  # Establecer valores negativos en 0
     forecast_dates = pd.date_range(start=data.index[-1] + pd.DateOffset(months=1), periods=horizon, freq='M')
 
-    return best_forecast, forecast_dates, best_order, best_seasonal_order, best_mape
+    return future_forecast, forecast_dates, best_order, best_seasonal_order, best_mape
 
 def run_sarima_projection(data, horizon=3):
     """
