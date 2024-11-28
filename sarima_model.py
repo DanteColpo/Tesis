@@ -55,7 +55,7 @@ def sarima_forecast(data, horizon):
     P_values = [0, 1, 2]
     D_values = [0, 1]
     Q_values = [0, 1, 2]
-    m = 3  # Periodo estacional de 3 meses
+    m = 12  # Periodo estacional de 12 meses
 
     # Variables para almacenar el mejor modelo y resultados
     best_mape = float('inf')
