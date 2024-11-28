@@ -48,14 +48,14 @@ def sarima_forecast(data, horizon):
     train = data['CANTIDAD_SUAVIZADA'].iloc[:-horizon]
     test = data['CANTIDAD_SUAVIZADA'].iloc[-horizon:]
 
-    # Rango de parámetros SARIMA
-    p_values = range(1, 3)
+    # Rango de parámetros para SARIMA
+    p_values = [1, 2, 3, 4]
     d_values = [0, 1]
-    q_values = range(0, 2)
-    P_values = range(0, 2)
+    q_values = [0, 1, 2]
+    P_values = [0, 1, 2]
     D_values = [0, 1]
-    Q_values = range(0, 2)
-    m = 12  # Periodo estacional de 12 meses (anual)
+    Q_values = [0, 1, 2]
+    m = 3  # Periodo estacional de 3 meses
 
     # Variables para almacenar el mejor modelo y resultados
     best_mape = float('inf')
