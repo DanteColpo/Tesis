@@ -61,7 +61,7 @@ def sarima_forecast(data, horizon):
     best_mape = float('inf')
     best_order = None
     best_seasonal_order = None
-    best_model = None
+    best_forecast = None
 
     # Bucle para optimizar parámetros SARIMA
     for p in p_values:
@@ -80,7 +80,7 @@ def sarima_forecast(data, horizon):
                                     enforce_invertibility=False
                                 )
                                 result = model.fit(disp=False)
-                                forecast = result.forecast(steps=horizon)
+                                forecast = result.predict(start=len(train), end=len(train) + len(test) - 1)
 
                                 # Calcular MAPE
                                 mape = mean_absolute_percentage_error(test, forecast)
@@ -90,16 +90,14 @@ def sarima_forecast(data, horizon):
                                     best_mape = mape
                                     best_order = (p, d, q)
                                     best_seasonal_order = (P, D, Q, m)
-                                    best_model = result
-                            except Exception:
+                                    best_forecast = forecast
+                            except Exception as e:
                                 continue
 
     # Generar la proyección con el mejor modelo
-    forecast = best_model.forecast(steps=horizon)
-    forecast = np.maximum(forecast, 0)  # Establecer valores negativos en 0
     forecast_dates = pd.date_range(start=data.index[-1] + pd.DateOffset(months=1), periods=horizon, freq='M')
 
-    return forecast, forecast_dates, best_order, best_seasonal_order, best_mape
+    return best_forecast, forecast_dates, best_order, best_seasonal_order, best_mape
 
 def run_sarima_projection(data, horizon=3):
     """
