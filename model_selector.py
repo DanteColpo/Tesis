@@ -92,8 +92,7 @@ def generate_graph(data, selected_models, all_results):
         x=data_monthly.index,
         y=data_monthly['CANTIDAD'],
         mode='lines',
-        name='Datos Históricos',
-        line=dict(color='blue')
+        name='Datos Históricos'
     ))
 
     # Agregar las proyecciones de los modelos seleccionados
