@@ -92,20 +92,20 @@ def generate_graph(data, selected_models, all_results):
         x=data_monthly.index,
         y=data_monthly['CANTIDAD'],
         mode='lines',
-        name='Datos Históricos'
+        name='Datos Históricos',
+        line=dict(color='blue')  # Color azul para los datos históricos
     ))
 
     # Agregar las proyecciones de los modelos seleccionados
     for model in selected_models:
         model_results = all_results.get(model)
         if model_results:
-            # Mostrar las proyecciones
             fig.add_trace(go.Scatter(
                 x=model_results['forecast_dates'],
                 y=model_results['forecast'],
                 mode='lines+markers',
                 name=f"Proyección {model}",
-                line=dict(dash='dash')  # Líneas punteadas para proyecciones
+                line=dict(dash='dash')  # Línea discontinua para las proyecciones
             ))
 
     # Configuración del gráfico
@@ -114,9 +114,9 @@ def generate_graph(data, selected_models, all_results):
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
         template='plotly_dark',
-        hovermode="x",
-        xaxis=dict(tickformat="%b %Y")  # Formato de fecha en eje X
+        hovermode="x"
     )
 
     return fig
+
 
