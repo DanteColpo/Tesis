@@ -39,13 +39,43 @@ if uploaded_file:
                         st.success(f"Modelo seleccionado: {best_model}")
                         st.write(f"Error Promedio Asociado (MAPE): {details['mape']:.2%}")
 
-                        # Mostrar gráfico del mejor modelo
-                        fig = generate_graph(data, details['forecast'], details['forecast_dates'], best_model)
-                        st.plotly_chart(fig)
+                        # Selección de modelos a comparar
+                        st.markdown("### Comparar Modelos de Proyección")
+                        model_options = ["ARIMA", "Proyección Lineal", "SARIMA"]
+                        selected_models = st.multiselect(
+                            "Selecciona los modelos a comparar:",
+                            options=model_options,
+                            default=["SARIMA"]  # Preseleccionar el mejor modelo
+                        )
 
-                        # Mostrar tabla de resultados si está disponible
+                        # Generar gráficos de comparación
+                        if selected_models:
+                            st.markdown("### Comparativa de Proyecciones")
+                            fig = go.Figure()
+                            fig.add_trace(go.Scatter(
+                                x=data.index, y=data['CANTIDAD'], mode='lines',
+                                name='Datos Históricos'
+                            ))
+                            for model in selected_models:
+                                model_results = results['all_results'][model]
+                                fig.add_trace(go.Scatter(
+                                    x=model_results['forecast_dates'],
+                                    y=model_results['forecast'],
+                                    mode='lines+markers',
+                                    name=f"Proyección {model}"
+                                ))
+                            fig.update_layout(
+                                title="Comparación de Modelos de Proyección",
+                                xaxis_title="Fecha",
+                                yaxis_title="Cantidad de Material (m³)",
+                                template="plotly_dark",
+                                hovermode="x"
+                            )
+                            st.plotly_chart(fig)
+
+                        # Mostrar tabla de resultados del modelo seleccionado
+                        st.markdown("### Tabla de Resultados del Modelo Seleccionado")
                         if 'results_table' in details:
-                            st.markdown("### Tabla de Resultados")
                             st.dataframe(details['results_table'])
                         else:
                             st.warning("No se generó una tabla de resultados.")
