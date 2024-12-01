@@ -22,6 +22,7 @@ def select_best_model(data, horizon):
         results['ARIMA'] = arima_results
     except Exception as e:
         print(f"Error ejecutando ARIMA: {e}")
+        arima_results = None  # Asegurarse de que la variable exista
 
     # Proyección con Proyección Lineal
     try:
@@ -29,6 +30,7 @@ def select_best_model(data, horizon):
         results['Linear Projection'] = linear_results
     except Exception as e:
         print(f"Error ejecutando Proyección Lineal: {e}")
+        linear_results = None  # Asegurarse de que la variable exista
 
     # Proyección con SARIMA
     try:
@@ -36,6 +38,7 @@ def select_best_model(data, horizon):
         results['SARIMA'] = sarima_results
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
+        sarima_results = None  # Asegurarse de que la variable exista
 
     # Verificar si al menos un modelo se ejecutó correctamente
     if not results:
@@ -47,6 +50,11 @@ def select_best_model(data, horizon):
     for model_name, details in results.items():
         print(f"- MAPE de {model_name}: {details['mape']:.2%}")
 
+    # MAPE individual para depuración
+    print("MAPE de ARIMA:", arima_results.get('mape') if arima_results else "No se ejecutó")
+    print("MAPE de Proyección Lineal:", linear_results.get('mape') if linear_results else "No se ejecutó")
+    print("MAPE de SARIMA:", sarima_results.get('mape') if sarima_results else "No se ejecutó")
+
     # Encontrar el modelo con menor MAPE
     best_model = min(results, key=lambda x: results[x]['mape'])
 
@@ -55,10 +63,6 @@ def select_best_model(data, horizon):
         'details': results[best_model],
         'all_results': results  # Incluye todos los resultados para análisis posterior
     }
-
-    print("MAPE de ARIMA:", arima_results.get('mape', 'No se ejecutó'))
-    print("MAPE de Proyección Lineal:", linear_results.get('mape', 'No se ejecutó'))
-    print("MAPE de SARIMA:", sarima_results.get('mape', 'No se ejecutó'))
 
 def generate_graph(data, forecast, forecast_dates, best_model):
     """
