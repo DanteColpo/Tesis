@@ -3,7 +3,6 @@ import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_percentage_error
-from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from itertools import product
 
@@ -52,14 +51,6 @@ def sarima_forecast(data, horizon, seasonal_period=3):
     # Encontrar el mejor alpha para suavización exponencial
     best_alpha = find_best_alpha(data)
     data['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
-
-    # Visualizar datos originales y suavizados
-    plt.figure(figsize=(10, 6))
-    plt.plot(data.index, data['CANTIDAD'], label='Datos Originales')
-    plt.plot(data.index, data['CANTIDAD_SUAVIZADA'], label='Datos Suavizados', linestyle='--')
-    plt.title('Comparación de Datos Originales y Suavizados')
-    plt.legend()
-    plt.show()
 
     # División en conjunto de entrenamiento y prueba
     train = data['CANTIDAD_SUAVIZADA'].iloc[:-horizon]
@@ -114,21 +105,12 @@ def sarima_forecast(data, horizon, seasonal_period=3):
     future_forecast = np.maximum(future_forecast, 0)  # Establecer valores negativos en 0
     forecast_dates = pd.date_range(start=data.index[-1] + pd.DateOffset(months=1), periods=horizon, freq='M')
 
-    # Visualizar predicciones y resultados
-    plt.figure(figsize=(10, 6))
-    plt.plot(train.index, train, label='Datos de Entrenamiento Suavizados')
-    plt.plot(test.index, test, label='Datos Reales Suavizados')
-    plt.plot(test.index, best_forecast, label='Pronóstico SARIMA', linestyle='--')
-    plt.title(f'Resultados de SARIMA con Periodo Estacional = {seasonal_period} Meses')
-    plt.legend()
-    plt.show()
-
     return future_forecast, forecast_dates, best_order, best_seasonal_order, best_mape
 
 def run_sarima_projection(data, horizon=3, seasonal_period=3):
     """
     Función principal para ejecutar SARIMA sobre un conjunto de datos.
-    Devuelve las proyecciones y las métricas asociadas.
+    Devuelve las proyecciones, las métricas asociadas y los datos en tabla.
     """
     data_processed = preprocess_data(data)
     
@@ -138,6 +120,16 @@ def run_sarima_projection(data, horizon=3, seasonal_period=3):
     
     forecast, forecast_dates, best_order, best_seasonal_order, mape = sarima_forecast(data_processed, horizon, seasonal_period)
     
+    # Crear tabla con los resultados
+    results_table = pd.DataFrame({
+        'Fecha': forecast_dates,
+        'Proyección (m³)': forecast
+    })
+    
+    # Mostrar resultados
+    print("\nResultados de Proyección:")
+    print(results_table)
+
     # Visualización de los resultados finales
     plt.figure(figsize=(10, 6))
     plt.plot(data_processed.index, data_processed['CANTIDAD_SUAVIZADA'], label='Datos Suavizados')
@@ -153,5 +145,6 @@ def run_sarima_projection(data, horizon=3, seasonal_period=3):
         "forecast_dates": forecast_dates,
         "order": best_order,
         "seasonal_order": best_seasonal_order,
-        "mape": mape
+        "mape": mape,
+        "results_table": results_table
     }
