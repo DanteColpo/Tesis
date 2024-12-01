@@ -4,7 +4,6 @@ from arima_model import arima_forecast
 from linear_projection import run_linear_projection
 from sarima_model import run_sarima_projection
 
-
 def select_best_model(data, horizon):
     """
     Evalúa múltiples modelos de proyección y selecciona el mejor basado en el MAPE más bajo.
@@ -19,45 +18,21 @@ def select_best_model(data, horizon):
     # Diccionario para almacenar resultados
     results = {}
 
-    # Proyección con ARIMA
-    try:
-        forecast_arima, dates_arima, order_arima, mape_arima = arima_forecast(data, horizon)
-        if mape_arima < 1.0:  # Excluir modelos con MAPE mayor al 100%
-            results['ARIMA'] = {
-                'forecast': forecast_arima,
-                'dates': dates_arima,
-                'order': order_arima,
-                'mape': mape_arima
-            }
-    except Exception as e:
-        print(f"Error ejecutando ARIMA: {e}")
+    # Lista de modelos a evaluar
+    models = {
+        "ARIMA": arima_forecast,
+        "Linear Projection": run_linear_projection,
+        "SARIMA": run_sarima_projection
+    }
 
-    # Proyección con Proyección Lineal
-    try:
-        linear_results = run_linear_projection(data, horizon)
-        if linear_results["mape"] < 1.0:  # Excluir modelos con MAPE mayor al 100%
-            results['Linear Projection'] = {
-                'forecast': linear_results["forecast"],
-                'dates': linear_results["forecast_dates"],
-                'mape': linear_results["mape"]
-            }
-    except Exception as e:
-        print(f"Error ejecutando Proyección Lineal: {e}")
-
-    # Proyección con SARIMA
-    try:
-        sarima_results = run_sarima_projection(data, horizon)
-        if sarima_results["mape"] < 1.0:  # Excluir modelos con MAPE mayor al 100%
-            results['SARIMA'] = {
-                'forecast': sarima_results["forecast"],
-                'dates': sarima_results["forecast_dates"],
-                'order': sarima_results["order"],
-                'seasonal_order': sarima_results["seasonal_order"],
-                'mape': sarima_results["mape"],
-                'results_table': sarima_results["results_table"]  # Incluye la tabla de resultados
-            }
-    except Exception as e:
-        print(f"Error ejecutando SARIMA: {e}")
+    for model_name, model_function in models.items():
+        try:
+            model_results = model_function(data, horizon)
+            # Validar MAPE y almacenar si es válido
+            if model_results["mape"] < 1.0:  # Excluir modelos con MAPE >= 100%
+                results[model_name] = model_results
+        except Exception as e:
+            print(f"Error ejecutando {model_name}: {e}")
 
     # Verificar si al menos un modelo se ejecutó correctamente
     if not results:
@@ -77,7 +52,6 @@ def select_best_model(data, horizon):
         'details': results[best_model],
         'all_results': results  # Incluye todos los resultados para análisis posterior
     }
-
 
 def generate_graph(data, forecast, forecast_dates, best_model):
     """
@@ -104,3 +78,39 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         hovermode="x"
     )
     return fig
+
+def main(data, horizon):
+    """
+    Función principal para ejecutar el selector de modelos y generar proyecciones.
+
+    Args:
+        data (pd.DataFrame): Datos históricos.
+        horizon (int): Horizonte de proyección (número de meses).
+    """
+    if data is None or data.empty:
+        print("Datos inválidos o vacíos. No se puede proceder con la proyección.")
+        return
+
+    # Seleccionar el mejor modelo
+    results = select_best_model(data, horizon)
+    if not results or not results['best_model']:
+        print("No se pudo seleccionar un modelo válido.")
+        return
+
+    best_model = results['best_model']
+    forecast = results['details']['forecast']
+    forecast_dates = results['details']['forecast_dates']
+    mape = results['details']['mape']
+
+    # Generar gráfico
+    fig = generate_graph(data, forecast, forecast_dates, best_model)
+
+    # Mostrar resultados
+    print(f"\nModelo seleccionado: {best_model}")
+    print(f"MAPE asociado: {mape:.2%}")
+    fig.show()
+
+    # Mostrar tabla de resultados si está disponible
+    if 'results_table' in results['details']:
+        print("\nTabla de Predicciones:")
+        print(results['details']['results_table'])
