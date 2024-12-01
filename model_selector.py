@@ -3,8 +3,8 @@
 import pandas as pd
 import plotly.graph_objects as go
 from arima_model import arima_forecast
-from linear_projection import run_linear_projection  # Nota: Cambié el nombre al correcto
-from sarima_model import sarima_forecast
+from linear_projection import run_linear_projection
+from sarima_model import run_sarima_projection
 
 
 def select_best_model(data, horizon):
@@ -46,13 +46,14 @@ def select_best_model(data, horizon):
 
     # Proyección con SARIMA
     try:
-        forecast_sarima, dates_sarima, order_sarima, seasonal_order_sarima, mape_sarima = sarima_forecast(data, horizon)
+        sarima_results = run_sarima_projection(data, horizon)
         results['SARIMA'] = {
-            'forecast': forecast_sarima,
-            'dates': dates_sarima,
-            'order': order_sarima,
-            'seasonal_order': seasonal_order_sarima,
-            'mape': mape_sarima
+            'forecast': sarima_results["forecast"],
+            'dates': sarima_results["forecast_dates"],
+            'order': sarima_results["order"],
+            'seasonal_order': sarima_results["seasonal_order"],
+            'mape': sarima_results["mape"],
+            'results_table': sarima_results["results_table"]  # Incluir la tabla de resultados
         }
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
@@ -73,7 +74,7 @@ def select_best_model(data, horizon):
     return {
         'best_model': best_model,
         'details': results[best_model],
-        'all_results': results  # Incluye todos los resultados
+        'all_results': results  # Incluye todos los resultados para análisis posterior
     }
 
 
@@ -134,6 +135,11 @@ def main(data, horizon):
     print(f"\nModelo seleccionado: {best_model}")
     print(f"MAPE asociado: {mape:.2%}")
     fig.show()
+
+    # Mostrar tabla de resultados si está disponible
+    if 'results_table' in results['details']:
+        print("\nTabla de Predicciones:")
+        print(results['details']['results_table'])
 
 
 # Si quieres probar el script de forma independiente:
