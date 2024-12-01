@@ -1,4 +1,5 @@
-from data_preprocessor import preprocess_data  # Importar la nueva función de preprocesamiento
+from data_preprocessor import preprocess_data
+  # Importar la nueva función de preprocesamiento
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
