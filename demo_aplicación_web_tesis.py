@@ -26,60 +26,65 @@ if uploaded_file:
             st.error("El archivo no contiene las columnas requeridas. Por favor verifica el formato.")
         else:
             # Convertir la columna FECHA a Datetime y configurar como índice
-            data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
-            data = data.dropna(subset=['FECHA']).set_index('FECHA')
+            try:
+                data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+                data = data.dropna(subset=['FECHA']).set_index('FECHA')
+                if data.empty:
+                    st.error("El archivo no contiene datos válidos después de procesar la columna 'FECHA'.")
+                else:
+                    # Seleccionar horizonte
+                    horizon = st.selectbox("Selecciona el horizonte de proyección (meses):", [3, 6, 12])
 
-            # Seleccionar horizonte
-            horizon = st.selectbox("Selecciona el horizonte de proyección (meses):", [3, 6, 12])
+                    # Ejecutar selección del mejor modelo
+                    with st.spinner("Calculando las proyecciones..."):
+                        try:
+                            results = select_best_model(data, horizon)
+                            if results:
+                                # Mostrar detalles del modelo seleccionado
+                                best_model = results['best_model']
+                                details = results['details']
 
-            # Ejecutar selección del mejor modelo
-            with st.spinner("Calculando las proyecciones..."):
-                try:
-                    results = select_best_model(data, horizon)
-                    if results:
-                        # Mostrar detalles del modelo seleccionado
-                        best_model = results['best_model']
-                        details = results['details']
+                                st.success(f"Modelo seleccionado: {best_model}")
+                                st.write(f"Error Promedio Asociado (MAPE): {details['mape']:.2%}")
 
-                        st.success(f"Modelo seleccionado: {best_model}")
-                        st.write(f"Error Promedio Asociado (MAPE): {details['mape']:.2%}")
+                                # Selección de modelos a comparar
+                                st.markdown("### Comparar Modelos de Proyección")
+                                model_options = list(results['all_results'].keys())
+                                selected_models = st.multiselect(
+                                    "Selecciona los modelos a comparar:",
+                                    options=model_options,
+                                    default=[best_model]  # Preseleccionar el mejor modelo
+                                )
 
-                        # Selección de modelos a comparar
-                        st.markdown("### Comparar Modelos de Proyección")
-                        model_options = list(results['all_results'].keys())
-                        selected_models = st.multiselect(
-                            "Selecciona los modelos a comparar:",
-                            options=model_options,
-                            default=[best_model]  # Preseleccionar el mejor modelo
-                        )
+                                # Generar gráficos de comparación
+                                if selected_models:
+                                    st.markdown("### Comparativa de Proyecciones")
+                                    fig = generate_graph(data, selected_models, results['all_results'])
+                                    st.plotly_chart(fig)
+                                else:
+                                    st.warning("Por favor selecciona al menos un modelo para comparar.")
 
-                        # Generar gráficos de comparación
-                        if selected_models:
-                            st.markdown("### Comparativa de Proyecciones")
-                            fig = generate_graph(data, selected_models, results['all_results'])
-                            st.plotly_chart(fig)
-                        else:
-                            st.warning("Por favor selecciona al menos un modelo para comparar.")
+                                # Mostrar tabla de resultados del modelo seleccionado
+                                st.markdown("### Tabla de Resultados del Modelo Seleccionado")
+                                if 'results_table' in details:
+                                    st.dataframe(details['results_table'])
+                                else:
+                                    st.warning("No se generó una tabla de resultados.")
 
-                        # Mostrar tabla de resultados del modelo seleccionado
-                        st.markdown("### Tabla de Resultados del Modelo Seleccionado")
-                        if 'results_table' in details:
-                            st.dataframe(details['results_table'])
-                        else:
-                            st.warning("No se generó una tabla de resultados.")
-
-                        # Añadir tabla comparativa de MAPEs
-                        st.markdown("### Comparativa de Modelos (MAPE)")
-                        mape_comparison = pd.DataFrame([
-                            {"Modelo": model, "MAPE (%)": results['all_results'][model]['mape'] * 100}
-                            for model in model_options
-                        ])
-                        mape_comparison = mape_comparison.sort_values(by="MAPE (%)").reset_index(drop=True)
-                        st.table(mape_comparison)
-                    else:
-                        st.error("No se pudo seleccionar un modelo. Verifica los datos.")
-                except Exception as e:
-                    st.error(f"Error durante la proyección: {e}")
+                                # Añadir tabla comparativa de MAPEs
+                                st.markdown("### Comparativa de Modelos (MAPE)")
+                                mape_comparison = pd.DataFrame([
+                                    {"Modelo": model, "MAPE (%)": results['all_results'][model]['mape'] * 100}
+                                    for model in model_options
+                                ])
+                                mape_comparison = mape_comparison.sort_values(by="MAPE (%)").reset_index(drop=True)
+                                st.table(mape_comparison)
+                            else:
+                                st.error("No se pudo seleccionar un modelo. Verifica los datos.")
+                        except Exception as e:
+                            st.error(f"Error durante la proyección: {e}")
+            except Exception as e:
+                st.error(f"Error al procesar la columna 'FECHA': {e}")
     except Exception as e:
         st.error(f"Error al leer el archivo: {e}")
 else:
