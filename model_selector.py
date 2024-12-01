@@ -77,6 +77,12 @@ def generate_graph(data, forecast, forecast_dates, best_model):
     Returns:
         plotly.graph_objects.Figure: Gráfico generado.
     """
+    # Asegurarse de que el índice sea un DatetimeIndex
+    if not isinstance(data.index, pd.DatetimeIndex):
+        data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+        data = data.dropna(subset=['FECHA'])
+        data = data.set_index('FECHA')
+
     # Consolidar datos históricos por mes
     data_monthly = data.resample('MS').sum()
 
@@ -102,4 +108,5 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         hovermode="x"
     )
     return fig
+
 
