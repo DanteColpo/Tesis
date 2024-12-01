@@ -76,27 +76,28 @@ def generate_graph(data, selected_models, all_results):
     Returns:
         plotly.graph_objects.Figure: Gráfico generado.
     """
-    # Asegurarse de que el índice sea un DatetimeIndex
+    # Verificar que la columna de fechas esté correctamente configurada
     if not isinstance(data.index, pd.DatetimeIndex):
         data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
         data = data.dropna(subset=['FECHA'])
         data = data.set_index('FECHA')
 
-    # Consolidar datos históricos por mes
-    data_monthly = data.resample('MS').sum()
+    # Consolidar los datos históricos por mes
+    data_monthly = data.resample('MS').sum()  # Resamplear por inicio de mes
 
+    # Crear figura del gráfico
     fig = go.Figure()
 
-    # Agregar datos históricos consolidados por mes
+    # Añadir datos históricos consolidados
     fig.add_trace(go.Scatter(
         x=data_monthly.index,
         y=data_monthly['CANTIDAD'],
         mode='lines',
         name='Datos Históricos',
-        line=dict(color='blue')  # Línea continua azul para los datos históricos
+        line=dict(color='blue')
     ))
 
-    # Agregar las proyecciones de los modelos seleccionados
+    # Añadir las proyecciones de los modelos seleccionados
     for model in selected_models:
         model_results = all_results.get(model)
         if model_results:
@@ -105,12 +106,12 @@ def generate_graph(data, selected_models, all_results):
                 y=model_results['forecast'],
                 mode='lines+markers',
                 name=f"Proyección {model}",
-                line=dict(dash='dash')  # Línea discontinua para las proyecciones
+                line=dict(dash='dash')
             ))
 
     # Configuración del gráfico
     fig.update_layout(
-        title="Comparación de Proyecciones",
+        title="Comparación de Modelos de Proyección",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
         template='plotly_dark',
@@ -118,3 +119,4 @@ def generate_graph(data, selected_models, all_results):
     )
 
     return fig
+
