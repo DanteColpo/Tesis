@@ -86,13 +86,15 @@ def generate_graph(data, selected_models, all_results):
     if 'SECTOR' in data.columns:
         data = data[data['SECTOR'] == 'Privado']
     else:
-        raise ValueError("La columna 'SECTOR' no está disponible en los datos.")
+        st.error("La columna 'SECTOR' no está disponible en los datos.")
+        return None
 
     # Consolidar datos históricos por mes
     if 'CANTIDAD' in data.columns:
         data_monthly = data[['CANTIDAD']].resample('MS').sum()
     else:
-        raise ValueError("La columna 'CANTIDAD' no está disponible en los datos.")
+        st.error("La columna 'CANTIDAD' no está disponible en los datos.")
+        return None
 
     # Crear figura del gráfico
     fig = go.Figure()
@@ -115,12 +117,12 @@ def generate_graph(data, selected_models, all_results):
                 y=model_results['forecast'],
                 mode='lines+markers',
                 name=f"Proyección {model}",
-                line=dict(dash='dash')
+                line=dict(dash='dash', color='green')
             ))
 
     # Configuración del gráfico
     fig.update_layout(
-        title="Proyección de Demanda (Privada)",
+        title="Proyección de Demanda Mensual Consolidada (Privada)",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
         template='plotly_dark',
@@ -128,3 +130,4 @@ def generate_graph(data, selected_models, all_results):
     )
 
     return fig
+
