@@ -17,35 +17,22 @@ def select_best_model(data, horizon):
     # Diccionario para almacenar resultados
     results = {}
 
-    # Proyección con ARIMA
-    try:
-        print("Ejecutando ARIMA...")
-        arima_results = run_arima_projection(data, horizon)
-        print("Resultado ARIMA:", arima_results)
-        results['ARIMA'] = arima_results
-    except Exception as e:
-        print(f"Error ejecutando ARIMA: {e}")
-        traceback.print_exc()
+    # Ejecutar cada modelo y capturar errores
+    models = {
+        "ARIMA": run_arima_projection,
+        "Linear Projection": run_linear_projection,
+        "SARIMA": run_sarima_projection,
+    }
 
-    # Proyección con Proyección Lineal
-    try:
-        print("Ejecutando Proyección Lineal...")
-        linear_results = run_linear_projection(data, horizon)
-        print("Resultado Proyección Lineal:", linear_results)
-        results['Linear Projection'] = linear_results
-    except Exception as e:
-        print(f"Error ejecutando Proyección Lineal: {e}")
-        traceback.print_exc()
-
-    # Proyección con SARIMA
-    try:
-        print("Ejecutando SARIMA...")
-        sarima_results = run_sarima_projection(data, horizon)
-        print("Resultado SARIMA:", sarima_results)
-        results['SARIMA'] = sarima_results
-    except Exception as e:
-        print(f"Error ejecutando SARIMA: {e}")
-        traceback.print_exc()
+    for model_name, model_function in models.items():
+        try:
+            print(f"Ejecutando {model_name}...")
+            model_results = model_function(data, horizon)
+            print(f"Resultado {model_name}:", model_results)
+            results[model_name] = model_results
+        except Exception as e:
+            print(f"Error ejecutando {model_name}: {e}")
+            traceback.print_exc()
 
     # Verificar si al menos un modelo se ejecutó correctamente
     if not results:
@@ -113,7 +100,8 @@ def generate_graph(data, selected_models, all_results):
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
         template='plotly_dark',
-        hovermode="x"
+        hovermode="x",
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
     )
 
     return fig
