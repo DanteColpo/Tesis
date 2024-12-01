@@ -1,3 +1,4 @@
+from data_preprocessor import preprocess_data  # Importar la nueva función de preprocesamiento
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
@@ -6,30 +7,12 @@ from sklearn.metrics import mean_absolute_percentage_error
 import matplotlib.pyplot as plt
 from itertools import product
 
-def preprocess_data(data):
-    """
-    Preprocesar los datos cargados, filtrando por sector privado
-    y resampleando mensualmente.
-    """
-    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
-    data = data.dropna(subset=['FECHA'])
-    data = data.set_index('FECHA')
-    data_privado = data[data['SECTOR'] == 'PRIVADO']
-    
-    # Resamplear datos mensuales
-    data_resampled = data_privado[['CANTIDAD']].resample('MS').sum()
-    
-    # Manejo de valores negativos o nulos
-    data_resampled['CANTIDAD'] = data_resampled['CANTIDAD'].clip(lower=0).fillna(0)
-    
-    return data_resampled
-
 def find_best_alpha(data):
     """
     Encuentra el mejor valor de alpha para la suavización exponencial
     basado en el MAPE más bajo.
     """
-    alphas = np.linspace(0.01, 1.0, 20)  # Mayor granularidad
+    alphas = np.linspace(0.01, 1.0, 20)
     best_alpha = None
     best_mape = float('inf')
 
@@ -112,7 +95,7 @@ def run_sarima_projection(data, horizon=3, seasonal_period=3):
     Función principal para ejecutar SARIMA sobre un conjunto de datos.
     Devuelve las proyecciones, las métricas asociadas y los datos en tabla.
     """
-    data_processed = preprocess_data(data)
+    data_processed = preprocess_data(data)  # Usar la nueva función de preprocesamiento
     
     # Validar que haya suficientes datos para realizar la proyección
     if len(data_processed) < horizon + 1:
