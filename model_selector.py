@@ -54,7 +54,7 @@ def select_best_model(data, horizon):
                 'order': sarima_results["order"],
                 'seasonal_order': sarima_results["seasonal_order"],
                 'mape': sarima_results["mape"],
-                'results_table': sarima_results["results_table"]
+                'results_table': sarima_results["results_table"]  # Incluye la tabla de resultados
             }
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
