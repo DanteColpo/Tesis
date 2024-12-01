@@ -1,6 +1,6 @@
 import pandas as pd
 import plotly.graph_objects as go
-from arima_model import run_arima
+from arima_model import run_arima_projection  # Corrección del nombre de la función importada
 from linear_projection import run_linear_projection
 from sarima_model import run_sarima_projection
 
@@ -18,7 +18,7 @@ def select_best_model(data, horizon):
 
     # Proyección con ARIMA
     try:
-        arima_results = run_arima(data, horizon)
+        arima_results = run_arima_projection(data, horizon)
         results['ARIMA'] = arima_results
     except Exception as e:
         print(f"Error ejecutando ARIMA: {e}")
