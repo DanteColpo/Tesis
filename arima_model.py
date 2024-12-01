@@ -1,10 +1,26 @@
-from data_preprocessor import preprocess_data
-  # Importar la nueva función de preprocesamiento
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
+
+def preprocess_arima_data(data):
+    """
+    Preprocesar los datos cargados, filtrando por sector privado
+    y resampleando mensualmente.
+    """
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+    data = data.dropna(subset=['FECHA'])
+    data = data.set_index('FECHA')
+    data_privado = data[data['SECTOR'] == 'PRIVADO']
+    
+    # Resamplear datos mensuales
+    data_resampled = data_privado[['CANTIDAD']].resample('MS').sum()
+    
+    # Manejo de valores negativos o nulos
+    data_resampled['CANTIDAD'] = data_resampled['CANTIDAD'].clip(lower=0).fillna(0)
+    
+    return data_resampled
 
 def find_best_alpha(data):
     """
@@ -75,7 +91,7 @@ def run_arima_projection(data, horizon=3):
     Función principal para ejecutar ARIMA sobre un conjunto de datos.
     Devuelve las proyecciones y las métricas asociadas.
     """
-    data_processed = preprocess_data(data)  # Usar la nueva función de preprocesamiento
+    data_processed = preprocess_arima_data(data)  # Usar la nueva función de preprocesamiento
 
     # Validar que haya suficientes datos para realizar la proyección
     if len(data_processed) < horizon + 1:
