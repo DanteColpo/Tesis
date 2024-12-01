@@ -62,18 +62,27 @@ if data is not None:
         with st.spinner("Calculando la mejor proyección..."):
             results = select_best_model(data_privado, horizon)
 
-        # Mostrar los resultados
-        st.success(f"Modelo seleccionado: {results['best_model']}")
-        st.write(f"Error Promedio Asociado (MAPE): {results['details']['mape']:.2%}")
+        # Validar si se obtuvo un modelo válido
+        if results:
+            # Mostrar los resultados del modelo seleccionado
+            st.success(f"Modelo seleccionado: {results['best_model']}")
+            st.write(f"Error Promedio Asociado (MAPE): {results['details']['mape']:.2%}")
 
-        # Generar el gráfico del mejor modelo
-        fig = generate_graph(
-            data_privado,
-            results['details']['forecast'],
-            results['details']['dates'],
-            results['best_model']
-        )
-        st.plotly_chart(fig)
+            # Generar el gráfico del mejor modelo
+            fig = generate_graph(
+                data_privado,
+                results['details']['forecast'],
+                results['details']['dates'],
+                results['best_model']
+            )
+            st.plotly_chart(fig)
+
+            # Mostrar la tabla de predicciones si está disponible
+            if 'results_table' in results['details']:
+                st.write("### Tabla de Predicciones")
+                st.dataframe(results['details']['results_table'])
+        else:
+            st.warning("No se pudo generar una proyección válida. Por favor, verifica los datos proporcionados.")
 else:
     st.info("Esperando que se cargue un archivo Excel válido...")
 
