@@ -4,6 +4,7 @@ from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_percentage_error
 from itertools import product
+import matplotlib.pyplot as plt
 
 def preprocess_data(data):
     """
@@ -14,14 +15,21 @@ def preprocess_data(data):
     data = data.dropna(subset=['FECHA'])
     data = data.set_index('FECHA')
     data_privado = data[data['SECTOR'] == 'PRIVADO']
-    return data_privado[['CANTIDAD']].resample('MS').sum()  # Resampleo mensual con suma
+    
+    # Resamplear datos mensuales
+    data_resampled = data_privado[['CANTIDAD']].resample('MS').sum()
+    
+    # Manejo de valores negativos o nulos
+    data_resampled['CANTIDAD'] = data_resampled['CANTIDAD'].clip(lower=0).fillna(0)
+    
+    return data_resampled
 
 def find_best_alpha(data):
     """
     Encuentra el mejor valor de alpha para la suavización exponencial
     basado en el MAPE más bajo.
     """
-    alphas = np.linspace(0.01, 1.0, 10)
+    alphas = np.linspace(0.01, 1.0, 20)  # Mayor granularidad
     best_alpha = None
     best_mape = float('inf')
 
@@ -49,13 +57,13 @@ def sarima_forecast(data, horizon):
     test = data['CANTIDAD_SUAVIZADA'].iloc[-horizon:]
 
     # Rango de parámetros para SARIMA
-    p_values = [1, 2, 3, 4]
+    p_values = [1, 2, 3]
     d_values = [0, 1]
-    q_values = [0, 1, 2]
-    P_values = [0, 1, 2]
+    q_values = [0, 1]
+    P_values = [0, 1]
     D_values = [0, 1]
-    Q_values = [0, 1, 2]
-    m = 12  # Periodo estacional de 3 meses
+    Q_values = [0, 1]
+    m = 3  # Periodo estacional trimestral
 
     # Variables para almacenar el mejor modelo y resultados
     best_mape = float('inf')
@@ -112,6 +120,16 @@ def run_sarima_projection(data, horizon=3):
         raise ValueError("Datos insuficientes para realizar la proyección SARIMA.")
     
     forecast, forecast_dates, best_order, best_seasonal_order, mape = sarima_forecast(data_processed, horizon)
+    
+    # Visualización de los resultados
+    plt.figure(figsize=(10, 6))
+    plt.plot(data_processed.index, data_processed['CANTIDAD_SUAVIZADA'], label='Datos Suavizados')
+    plt.plot(forecast_dates, forecast, label='Pronóstico SARIMA', linestyle='--')
+    plt.xlabel('Fecha')
+    plt.ylabel('Cantidad de Material')
+    plt.title('Proyección de Demanda (SARIMA)')
+    plt.legend()
+    plt.show()
     
     return {
         "forecast": forecast,
