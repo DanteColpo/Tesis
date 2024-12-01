@@ -1,4 +1,5 @@
-from data_preprocessor import preprocess_data  # Usar la función centralizada de preprocesamiento
+from data_preprocessor import preprocess_data
+  # Usar la función centralizada de preprocesamiento
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
