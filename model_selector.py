@@ -66,14 +66,13 @@ def select_best_model(data, horizon):
         'all_results': results  # Todos los resultados para análisis posterior
     }
 
-def generate_graph(data, forecast, forecast_dates, best_model):
+def generate_graph(data, selected_models, all_results):
     """
-    Genera un gráfico interactivo de los datos históricos y la proyección seleccionada.
+    Genera un gráfico interactivo de los datos históricos y las proyecciones seleccionadas.
     Args:
         data (pd.DataFrame): Datos históricos (con columna 'CANTIDAD').
-        forecast (pd.Series): Valores proyectados.
-        forecast_dates (pd.DatetimeIndex): Fechas asociadas a la proyección.
-        best_model (str): Nombre del modelo seleccionado.
+        selected_models (list): Lista de nombres de los modelos seleccionados (ej. ['ARIMA', 'SARIMA']).
+        all_results (dict): Diccionario con los resultados de todos los modelos disponibles.
     Returns:
         plotly.graph_objects.Figure: Gráfico generado.
     """
@@ -87,26 +86,34 @@ def generate_graph(data, forecast, forecast_dates, best_model):
     data_monthly = data.resample('MS').sum()
 
     fig = go.Figure()
+
+    # Agregar datos históricos
     fig.add_trace(go.Scatter(
         x=data_monthly.index,
         y=data_monthly['CANTIDAD'],
         mode='lines',
         name='Datos Históricos'
     ))
-    fig.add_trace(go.Scatter(
-        x=forecast_dates,
-        y=forecast,
-        mode='lines+markers',
-        name=f'Proyección {best_model}',
-        line=dict(dash='dash', color='green')
-    ))
+
+    # Agregar las proyecciones de los modelos seleccionados
+    for model in selected_models:
+        model_results = all_results.get(model)
+        if model_results:
+            fig.add_trace(go.Scatter(
+                x=model_results['forecast_dates'],
+                y=model_results['forecast'],
+                mode='lines+markers',
+                name=f"Proyección {model}",
+                line=dict(dash='dash')
+            ))
+
+    # Configuración del gráfico
     fig.update_layout(
-        title=f"Proyección de Demanda ({best_model})",
+        title="Comparación de Proyecciones",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
         template='plotly_dark',
         hovermode="x"
     )
+
     return fig
-
-
