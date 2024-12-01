@@ -1,3 +1,4 @@
+from data_preprocessor import preprocess_data  # Importar la nueva función de preprocesamiento
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
@@ -7,17 +8,6 @@ import itertools
 
 # Definir alpha globalmente para la suavización exponencial
 alpha = 0.9
-
-def preprocess_data(data):
-    """
-    Preprocesar los datos cargados, filtrando por sector privado
-    y resampleando mensualmente.
-    """
-    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
-    data = data.dropna(subset=['FECHA'])
-    data = data.set_index('FECHA')
-    data_privado = data[data['SECTOR'] == 'PRIVADO']
-    return data_privado[['CANTIDAD']].resample('MS').sum()  # Resampleo mensual con suma
 
 def arima_forecast(data, horizon):
     """
@@ -51,7 +41,7 @@ def arima_forecast(data, horizon):
                 best_mape = mape
                 best_order = combination
                 best_model = model
-        except:
+        except Exception as e:
             continue
 
     # Generar proyección para los próximos meses
@@ -66,7 +56,7 @@ def run_arima(data, horizon=3):
     Función principal para ejecutar ARIMA sobre un conjunto de datos.
     Devuelve las proyecciones y las métricas asociadas.
     """
-    data_processed = preprocess_data(data)
+    data_processed = preprocess_data(data)  # Usar la nueva función de preprocesamiento
     forecast, forecast_dates, best_order, best_mape = arima_forecast(data_processed, horizon)
     return {
         "forecast": forecast,
