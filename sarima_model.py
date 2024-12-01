@@ -1,18 +1,35 @@
-from data_preprocessor import preprocess_data
-  # Importar la nueva función de preprocesamiento
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_percentage_error
+import matplotlib.pyplot as plt
 from itertools import product
+
+def preprocess_data(data):
+    """
+    Preprocesar los datos cargados, filtrando por sector privado
+    y resampleando mensualmente.
+    """
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+    data = data.dropna(subset=['FECHA'])
+    data = data.set_index('FECHA')
+    data_privado = data[data['SECTOR'] == 'PRIVADO']
+    
+    # Resamplear datos mensuales
+    data_resampled = data_privado[['CANTIDAD']].resample('MS').sum()
+    
+    # Manejo de valores negativos o nulos
+    data_resampled['CANTIDAD'] = data_resampled['CANTIDAD'].clip(lower=0).fillna(0)
+    
+    return data_resampled
 
 def find_best_alpha(data):
     """
     Encuentra el mejor valor de alpha para la suavización exponencial
     basado en el MAPE más bajo.
     """
-    alphas = np.linspace(0.01, 1.0, 20)
+    alphas = np.linspace(0.01, 1.0, 20)  # Mayor granularidad
     best_alpha = None
     best_mape = float('inf')
 
@@ -80,7 +97,7 @@ def sarima_forecast(data, horizon, seasonal_period=3):
                 best_seasonal_order = (P, D, Q, seasonal_period)
                 best_model = result
                 best_forecast = forecast
-        except Exception:
+        except Exception as e:
             continue
 
     # Generar la proyección con el mejor modelo
@@ -95,7 +112,7 @@ def run_sarima_projection(data, horizon=3, seasonal_period=3):
     Función principal para ejecutar SARIMA sobre un conjunto de datos.
     Devuelve las proyecciones, las métricas asociadas y los datos en tabla.
     """
-    data_processed = preprocess_data(data)  # Usar la nueva función de preprocesamiento
+    data_processed = preprocess_data(data)
     
     # Validar que haya suficientes datos para realizar la proyección
     if len(data_processed) < horizon + 1:
@@ -108,6 +125,20 @@ def run_sarima_projection(data, horizon=3, seasonal_period=3):
         'Fecha': forecast_dates,
         'Proyección (m³)': forecast
     })
+    
+    # Mostrar resultados
+    print("\nResultados de Proyección:")
+    print(results_table)
+
+    # Visualización de los resultados finales
+    plt.figure(figsize=(10, 6))
+    plt.plot(data_processed.index, data_processed['CANTIDAD_SUAVIZADA'], label='Datos Suavizados')
+    plt.plot(forecast_dates, forecast, label='Pronóstico SARIMA', linestyle='--')
+    plt.xlabel('Fecha')
+    plt.ylabel('Cantidad de Material')
+    plt.title(f'Proyección de Demanda (SARIMA) - Periodo Estacional = {seasonal_period}')
+    plt.legend()
+    plt.show()
     
     return {
         "forecast": forecast,
