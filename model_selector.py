@@ -56,6 +56,10 @@ def select_best_model(data, horizon):
         'all_results': results  # Incluye todos los resultados para análisis posterior
     }
 
+    print("MAPE de ARIMA:", arima_results.get('mape', 'No se ejecutó'))
+    print("MAPE de Proyección Lineal:", linear_results.get('mape', 'No se ejecutó'))
+    print("MAPE de SARIMA:", sarima_results.get('mape', 'No se ejecutó'))
+
 def generate_graph(data, forecast, forecast_dates, best_model):
     """
     Genera un gráfico interactivo de los datos históricos y la proyección seleccionada.
