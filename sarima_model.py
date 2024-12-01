@@ -4,7 +4,6 @@ import numpy as np
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_percentage_error
-import matplotlib.pyplot as plt
 from itertools import product
 
 def find_best_alpha(data):
@@ -80,7 +79,7 @@ def sarima_forecast(data, horizon, seasonal_period=3):
                 best_seasonal_order = (P, D, Q, seasonal_period)
                 best_model = result
                 best_forecast = forecast
-        except Exception as e:
+        except Exception:
             continue
 
     # Generar la proyección con el mejor modelo
@@ -108,20 +107,6 @@ def run_sarima_projection(data, horizon=3, seasonal_period=3):
         'Fecha': forecast_dates,
         'Proyección (m³)': forecast
     })
-    
-    # Mostrar resultados
-    print("\nResultados de Proyección:")
-    print(results_table)
-
-    # Visualización de los resultados finales
-    plt.figure(figsize=(10, 6))
-    plt.plot(data_processed.index, data_processed['CANTIDAD_SUAVIZADA'], label='Datos Suavizados')
-    plt.plot(forecast_dates, forecast, label='Pronóstico SARIMA', linestyle='--')
-    plt.xlabel('Fecha')
-    plt.ylabel('Cantidad de Material')
-    plt.title(f'Proyección de Demanda (SARIMA) - Periodo Estacional = {seasonal_period}')
-    plt.legend()
-    plt.show()
     
     return {
         "forecast": forecast,
