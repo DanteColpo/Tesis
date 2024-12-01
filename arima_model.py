@@ -1,7 +1,7 @@
 from data_preprocessor import preprocess_data  # Importar la nueva función de preprocesamiento
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_percentage_error
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
 
@@ -24,12 +24,12 @@ def find_best_alpha(data):
 
     return best_alpha
 
-def linear_forecast(data, horizon):
+def arima_forecast(data, horizon):
     """
-    Realiza proyecciones lineales en base a los datos proporcionados.
+    Realiza proyecciones ARIMA en base a los datos proporcionados.
     Devuelve la proyección, las fechas proyectadas y el MAPE asociado.
     """
-    # Encontrar el mejor alpha para suavización exponencial
+    # Suavización exponencial
     best_alpha = find_best_alpha(data)
     data['CANTIDAD_SUAVIZADA'] = SimpleExpSmoothing(data['CANTIDAD']).fit(smoothing_level=best_alpha, optimized=False).fittedvalues
 
@@ -37,39 +37,61 @@ def linear_forecast(data, horizon):
     train = data['CANTIDAD_SUAVIZADA'].iloc[:-horizon]
     test = data['CANTIDAD_SUAVIZADA'].iloc[-horizon:]
 
-    # Crear las variables independientes para regresión lineal
-    train_index = np.arange(len(train)).reshape(-1, 1)
-    test_index = np.arange(len(train), len(train) + horizon).reshape(-1, 1)
+    # Optimización de parámetros ARIMA
+    best_mape = float('inf')
+    best_order = None
+    best_model = None
 
-    # Ajustar el modelo de regresión lineal
-    linear_model = LinearRegression()
-    linear_model.fit(train_index, train)
+    # Rango de búsqueda para p, d, q
+    p_values = range(0, 3)
+    d_values = range(0, 2)
+    q_values = range(0, 3)
 
-    # Generar las proyecciones
-    forecast = linear_model.predict(test_index)
+    for p in p_values:
+        for d in d_values:
+            for q in q_values:
+                try:
+                    model = ARIMA(train, order=(p, d, q)).fit()
+                    forecast = model.forecast(steps=horizon)
+                    mape = mean_absolute_percentage_error(test, forecast)
+
+                    if mape < best_mape:
+                        best_mape = mape
+                        best_order = (p, d, q)
+                        best_model = model
+                except:
+                    continue
+
+    # Generar la proyección futura
+    forecast = best_model.forecast(steps=horizon)
     forecast = np.maximum(forecast, 0)  # Establecer valores negativos en 0
     forecast_dates = pd.date_range(start=data.index[-1] + pd.DateOffset(months=1), periods=horizon, freq='M')
 
-    # Calcular el MAPE
-    mape = mean_absolute_percentage_error(test, forecast)
+    return forecast, forecast_dates, best_order, best_mape
 
-    return forecast, forecast_dates, mape
-
-def run_linear_projection(data, horizon=3):
+def run_arima_projection(data, horizon=3):
     """
-    Función principal para ejecutar Proyección Lineal sobre un conjunto de datos.
+    Función principal para ejecutar ARIMA sobre un conjunto de datos.
     Devuelve las proyecciones y las métricas asociadas.
     """
     data_processed = preprocess_data(data)  # Usar la nueva función de preprocesamiento
-    
+
     # Validar que haya suficientes datos para realizar la proyección
     if len(data_processed) < horizon + 1:
-        raise ValueError("Datos insuficientes para realizar la proyección lineal.")
-    
-    forecast, forecast_dates, mape = linear_forecast(data_processed, horizon)
-    
+        raise ValueError("Datos insuficientes para realizar la proyección ARIMA.")
+
+    forecast, forecast_dates, best_order, mape = arima_forecast(data_processed, horizon)
+
+    # Crear tabla con los resultados
+    results_table = pd.DataFrame({
+        'Fecha': forecast_dates,
+        'Proyección (m³)': forecast
+    })
+
     return {
         "forecast": forecast,
         "forecast_dates": forecast_dates,
-        "mape": mape
+        "best_order": best_order,
+        "mape": mape,
+        "results_table": results_table
     }
