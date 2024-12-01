@@ -1,5 +1,3 @@
-# model_selector.py
-
 import pandas as pd
 import plotly.graph_objects as go
 from arima_model import arima_forecast
@@ -24,37 +22,40 @@ def select_best_model(data, horizon):
     # Proyección con ARIMA
     try:
         forecast_arima, dates_arima, order_arima, mape_arima = arima_forecast(data, horizon)
-        results['ARIMA'] = {
-            'forecast': forecast_arima,
-            'dates': dates_arima,
-            'order': order_arima,
-            'mape': mape_arima
-        }
+        if mape_arima < 1.0:  # Excluir modelos con MAPE mayor al 100%
+            results['ARIMA'] = {
+                'forecast': forecast_arima,
+                'dates': dates_arima,
+                'order': order_arima,
+                'mape': mape_arima
+            }
     except Exception as e:
         print(f"Error ejecutando ARIMA: {e}")
 
     # Proyección con Proyección Lineal
     try:
         linear_results = run_linear_projection(data, horizon)
-        results['Linear Projection'] = {
-            'forecast': linear_results["forecast"],
-            'dates': linear_results["forecast_dates"],
-            'mape': linear_results["mape"]
-        }
+        if linear_results["mape"] < 1.0:  # Excluir modelos con MAPE mayor al 100%
+            results['Linear Projection'] = {
+                'forecast': linear_results["forecast"],
+                'dates': linear_results["forecast_dates"],
+                'mape': linear_results["mape"]
+            }
     except Exception as e:
         print(f"Error ejecutando Proyección Lineal: {e}")
 
     # Proyección con SARIMA
     try:
         sarima_results = run_sarima_projection(data, horizon)
-        results['SARIMA'] = {
-            'forecast': sarima_results["forecast"],
-            'dates': sarima_results["forecast_dates"],
-            'order': sarima_results["order"],
-            'seasonal_order': sarima_results["seasonal_order"],
-            'mape': sarima_results["mape"],
-            'results_table': sarima_results["results_table"]  # Incluir la tabla de resultados
-        }
+        if sarima_results["mape"] < 1.0:  # Excluir modelos con MAPE mayor al 100%
+            results['SARIMA'] = {
+                'forecast': sarima_results["forecast"],
+                'dates': sarima_results["forecast_dates"],
+                'order': sarima_results["order"],
+                'seasonal_order': sarima_results["seasonal_order"],
+                'mape': sarima_results["mape"],
+                'results_table': sarima_results["results_table"]
+            }
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
 
@@ -103,59 +104,3 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         hovermode="x"
     )
     return fig
-
-
-def main(data, horizon):
-    """
-    Función principal para ejecutar el selector de modelos y generar proyecciones.
-
-    Args:
-        data (pd.DataFrame): Datos históricos.
-        horizon (int): Horizonte de proyección (número de meses).
-    """
-    if data is None or data.empty:
-        print("Datos inválidos o vacíos. No se puede proceder con la proyección.")
-        return
-
-    # Seleccionar el mejor modelo
-    results = select_best_model(data, horizon)
-    if not results or not results['best_model']:
-        print("No se pudo seleccionar un modelo válido.")
-        return
-
-    best_model = results['best_model']
-    forecast = results['details']['forecast']
-    forecast_dates = results['details']['dates']
-    mape = results['details']['mape']
-
-    # Generar gráfico
-    fig = generate_graph(data, forecast, forecast_dates, best_model)
-
-    # Mostrar resultados
-    print(f"\nModelo seleccionado: {best_model}")
-    print(f"MAPE asociado: {mape:.2%}")
-    fig.show()
-
-    # Mostrar tabla de resultados si está disponible
-    if 'results_table' in results['details']:
-        print("\nTabla de Predicciones:")
-        print(results['details']['results_table'])
-
-
-# Si quieres probar el script de forma independiente:
-if __name__ == "__main__":
-    # Cargar datos de ejemplo
-    file_path = "Base de Datos Áridos.xlsx"
-    data = pd.read_excel(file_path)
-
-    # Preprocesar datos para el sector PRIVADO
-    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
-    data = data.dropna(subset=['FECHA'])
-    data.set_index('FECHA', inplace=True)
-    data_privado = data[data['SECTOR'] == 'PRIVADO'][['CANTIDAD']].resample('M').sum()
-
-    # Definir horizonte
-    horizon = 3
-
-    # Ejecutar el selector de modelos
-    main(data_privado, horizon)
