@@ -70,20 +70,29 @@ def generate_graph(data, selected_models, all_results):
     """
     Genera un gráfico interactivo de los datos históricos y las proyecciones seleccionadas.
     Args:
-        data (pd.DataFrame): Datos históricos (con columna 'CANTIDAD').
+        data (pd.DataFrame): Datos históricos (con columnas 'FECHA', 'CANTIDAD', 'SECTOR').
         selected_models (list): Lista de nombres de los modelos seleccionados (ej. ['ARIMA', 'SARIMA']).
         all_results (dict): Diccionario con los resultados de todos los modelos disponibles.
     Returns:
         plotly.graph_objects.Figure: Gráfico generado.
     """
-    # Verificar que la columna de fechas esté correctamente configurada
+    # Asegurarse de que el índice sea un DatetimeIndex
     if not isinstance(data.index, pd.DatetimeIndex):
         data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
         data = data.dropna(subset=['FECHA'])
         data = data.set_index('FECHA')
 
-    # Consolidar los datos históricos por mes
-    data_monthly = data.resample('MS').sum()  # Resamplear por inicio de mes
+    # Filtrar solo demanda privada
+    if 'SECTOR' in data.columns:
+        data = data[data['SECTOR'] == 'Privado']
+    else:
+        raise ValueError("La columna 'SECTOR' no está disponible en los datos.")
+
+    # Consolidar datos históricos por mes
+    if 'CANTIDAD' in data.columns:
+        data_monthly = data[['CANTIDAD']].resample('MS').sum()
+    else:
+        raise ValueError("La columna 'CANTIDAD' no está disponible en los datos.")
 
     # Crear figura del gráfico
     fig = go.Figure()
@@ -93,7 +102,7 @@ def generate_graph(data, selected_models, all_results):
         x=data_monthly.index,
         y=data_monthly['CANTIDAD'],
         mode='lines',
-        name='Datos Históricos',
+        name='Demanda Histórica (Privada)',
         line=dict(color='blue')
     ))
 
@@ -111,7 +120,7 @@ def generate_graph(data, selected_models, all_results):
 
     # Configuración del gráfico
     fig.update_layout(
-        title="Comparación de Modelos de Proyección",
+        title="Proyección de Demanda (Privada)",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
         template='plotly_dark',
@@ -119,4 +128,3 @@ def generate_graph(data, selected_models, all_results):
     )
 
     return fig
-
