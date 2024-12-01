@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 from design import show_logo_and_title, show_instructions, show_faq, show_contact_info
-from model_selector import select_best_model, generate_graph
+from model_selector import select_best_model
 from side_panels import show_left_panel, show_public_vs_private_demand
 
 # Configuración de la página
@@ -28,7 +29,7 @@ if uploaded_file:
             horizon = st.selectbox("Selecciona el horizonte de proyección (meses):", [3, 6, 12])
 
             # Ejecutar selección del mejor modelo
-            with st.spinner("Calculando la mejor proyección..."):
+            with st.spinner("Calculando las proyecciones..."):
                 try:
                     results = select_best_model(data, horizon)
                     if results:
@@ -41,11 +42,11 @@ if uploaded_file:
 
                         # Selección de modelos a comparar
                         st.markdown("### Comparar Modelos de Proyección")
-                        model_options = ["ARIMA", "Proyección Lineal", "SARIMA"]
+                        model_options = list(results['all_results'].keys())
                         selected_models = st.multiselect(
                             "Selecciona los modelos a comparar:",
                             options=model_options,
-                            default=["SARIMA"]  # Preseleccionar el mejor modelo
+                            default=[best_model]  # Preseleccionar el mejor modelo
                         )
 
                         # Generar gráficos de comparación
@@ -53,7 +54,7 @@ if uploaded_file:
                             st.markdown("### Comparativa de Proyecciones")
                             fig = go.Figure()
                             fig.add_trace(go.Scatter(
-                                x=data.index, y=data['CANTIDAD'], mode='lines',
+                                x=data['FECHA'], y=data['CANTIDAD'], mode='lines',
                                 name='Datos Históricos'
                             ))
                             for model in selected_models:
@@ -72,6 +73,8 @@ if uploaded_file:
                                 hovermode="x"
                             )
                             st.plotly_chart(fig)
+                        else:
+                            st.warning("Por favor selecciona al menos un modelo para comparar.")
 
                         # Mostrar tabla de resultados del modelo seleccionado
                         st.markdown("### Tabla de Resultados del Modelo Seleccionado")
@@ -83,11 +86,10 @@ if uploaded_file:
                         # Añadir tabla comparativa de MAPEs
                         st.markdown("### Comparativa de Modelos (MAPE)")
                         mape_comparison = pd.DataFrame([
-                            {"Modelo": "ARIMA", "MAPE (%)": results['all_results']['ARIMA']['mape'] * 100},
-                            {"Modelo": "Proyección Lineal", "MAPE (%)": results['all_results']['Linear Projection']['mape'] * 100},
-                            {"Modelo": "SARIMA", "MAPE (%)": results['all_results']['SARIMA']['mape'] * 100},
+                            {"Modelo": model, "MAPE (%)": results['all_results'][model]['mape'] * 100}
+                            for model in model_options
                         ])
-                        mape_comparison = mape_comparison.sort_values(by="MAPE (%)")
+                        mape_comparison = mape_comparison.sort_values(by="MAPE (%)").reset_index(drop=True)
                         st.table(mape_comparison)
                     else:
                         st.error("No se pudo seleccionar un modelo. Verifica los datos.")
