@@ -77,16 +77,18 @@ def generate_graph(data, forecast, forecast_dates, best_model):
     Returns:
         plotly.graph_objects.Figure: Gráfico generado.
     """
+    # Asegúrate de que los índices sean tratados como fechas correctamente
+    data = data.reset_index()  # Reinicia el índice para que 'FECHA' esté disponible como columna
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')  # Asegúrate de que esté en formato datetime
+
     fig = go.Figure()
-    # Trazar los datos históricos con fechas en el eje X
     fig.add_trace(go.Scatter(
-        x=data.index,
+        x=data['FECHA'],  # Ahora usa la columna FECHA para el eje X
         y=data['CANTIDAD'],
         mode='lines',
         name='Datos Históricos'
     ))
 
-    # Trazar la proyección con fechas en el eje X
     fig.add_trace(go.Scatter(
         x=forecast_dates,
         y=forecast,
@@ -95,14 +97,14 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         line=dict(dash='dash', color='green')
     ))
 
-    # Configuración del diseño del gráfico
     fig.update_layout(
         title=f"Proyección de Demanda ({best_model})",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
-        xaxis=dict(type='date', tickformat='%Y-%m'),  # Mostrar las fechas en formato Año-Mes
+        xaxis=dict(type='date', tickformat='%Y-%m'),  # Mostrar fechas como Año-Mes
         template='plotly_dark',
-        hovermode="x unified"  # Mostrar datos unificados al pasar el cursor
+        hovermode="x unified"
     )
     return fig
+
 
