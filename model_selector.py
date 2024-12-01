@@ -77,13 +77,13 @@ def generate_graph(data, forecast, forecast_dates, best_model):
     Returns:
         plotly.graph_objects.Figure: Gráfico generado.
     """
-    # Asegúrate de que los índices sean tratados como fechas correctamente
-    data = data.reset_index()  # Reinicia el índice para que 'FECHA' esté disponible como columna
-    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')  # Asegúrate de que esté en formato datetime
+    # Reiniciar índice para asegurar que las fechas se usen correctamente
+    data = data.reset_index()
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=data['FECHA'],  # Ahora usa la columna FECHA para el eje X
+        x=data['FECHA'],
         y=data['CANTIDAD'],
         mode='lines',
         name='Datos Históricos'
@@ -101,10 +101,12 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         title=f"Proyección de Demanda ({best_model})",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
-        xaxis=dict(type='date', tickformat='%Y-%m'),  # Mostrar fechas como Año-Mes
+        xaxis=dict(
+            type='date',
+            tickformat='%b %Y',  # Formato Mes Año (ejemplo: "Jan 2023")
+            dtick="M3"  # Intervalos cada 3 meses
+        ),
         template='plotly_dark',
         hovermode="x unified"
     )
     return fig
-
-
