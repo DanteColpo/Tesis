@@ -49,6 +49,16 @@ if uploaded_file:
                             st.dataframe(details['results_table'])
                         else:
                             st.warning("No se generó una tabla de resultados.")
+
+                        # Añadir tabla comparativa de MAPEs
+                        st.markdown("### Comparativa de Modelos (MAPE)")
+                        mape_comparison = pd.DataFrame([
+                            {"Modelo": "ARIMA", "MAPE (%)": results['all_results']['ARIMA']['mape'] * 100},
+                            {"Modelo": "Proyección Lineal", "MAPE (%)": results['all_results']['Linear Projection']['mape'] * 100},
+                            {"Modelo": "SARIMA", "MAPE (%)": results['all_results']['SARIMA']['mape'] * 100},
+                        ])
+                        mape_comparison = mape_comparison.sort_values(by="MAPE (%)")
+                        st.table(mape_comparison)
                     else:
                         st.error("No se pudo seleccionar un modelo. Verifica los datos.")
                 except Exception as e:
