@@ -87,13 +87,13 @@ def generate_graph(data, selected_models, all_results):
 
     fig = go.Figure()
 
-    # Agregar datos históricos
+    # Agregar datos históricos consolidados por mes
     fig.add_trace(go.Scatter(
         x=data_monthly.index,
         y=data_monthly['CANTIDAD'],
         mode='lines',
         name='Datos Históricos',
-        line=dict(color='blue')  # Color azul para los datos históricos
+        line=dict(color='blue')  # Línea continua azul para los datos históricos
     ))
 
     # Agregar las proyecciones de los modelos seleccionados
@@ -118,5 +118,3 @@ def generate_graph(data, selected_models, all_results):
     )
 
     return fig
-
-
