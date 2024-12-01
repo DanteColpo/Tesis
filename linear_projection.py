@@ -1,10 +1,26 @@
-from data_preprocessor import preprocess_data
-  # Usar la función centralizada de preprocesamiento
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_percentage_error
 from statsmodels.tsa.holtwinters import SimpleExpSmoothing
+
+def preprocess_linear_data(data):
+    """
+    Preprocesar los datos cargados, filtrando por sector privado
+    y resampleando mensualmente.
+    """
+    data['FECHA'] = pd.to_datetime(data['FECHA'], errors='coerce')
+    data = data.dropna(subset=['FECHA'])
+    data = data.set_index('FECHA')
+    data_privado = data[data['SECTOR'] == 'PRIVADO']
+    
+    # Resamplear datos mensuales
+    data_resampled = data_privado[['CANTIDAD']].resample('MS').sum()
+    
+    # Manejo de valores negativos o nulos
+    data_resampled['CANTIDAD'] = data_resampled['CANTIDAD'].clip(lower=0).fillna(0)
+    
+    return data_resampled
 
 def find_best_alpha(data):
     """
@@ -61,7 +77,7 @@ def run_linear_projection(data, horizon=3):
     Función principal para ejecutar Proyección Lineal sobre un conjunto de datos.
     Devuelve las proyecciones y las métricas asociadas.
     """
-    data_processed = preprocess_data(data)  # Usar la nueva función de preprocesamiento
+    data_processed = preprocess_linear_data(data)  # Usar la nueva función de preprocesamiento
     
     # Validar que haya suficientes datos para realizar la proyección
     if len(data_processed) < horizon + 1:
