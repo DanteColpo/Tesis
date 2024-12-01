@@ -1,10 +1,10 @@
 import pandas as pd
 import plotly.graph_objects as go
-from arima_model import run_arima_projection  # Corrección del nombre de la función importada
-from linear_projection import run_linear_projection
-from sarima_model import run_sarima_projection
-
-import traceback  # Importar para mostrar errores detallados
+from data_preprocessor import preprocess_data  # Usar función de preprocesamiento
+from arima_model import run_arima_projection  # Proyección con ARIMA
+from linear_projection import run_linear_projection  # Proyección Lineal
+from sarima_model import run_sarima_projection  # Proyección con SARIMA
+import traceback  # Para manejo detallado de errores
 
 def select_best_model(data, horizon):
     """
@@ -15,14 +15,24 @@ def select_best_model(data, horizon):
     Returns:
         dict: Resultados del modelo seleccionado, incluyendo proyección, MAPE y detalles del modelo.
     """
+    # Preprocesar los datos
+    try:
+        print("Preprocesando los datos...")
+        data_processed = preprocess_data(data)
+        if data_processed.empty:
+            raise ValueError("Los datos procesados están vacíos. Verifica tu archivo.")
+    except Exception as e:
+        print(f"Error durante el preprocesamiento: {e}")
+        traceback.print_exc()
+        return None
+
     # Diccionario para almacenar resultados
     results = {}
 
     # Proyección con ARIMA
     try:
         print("Ejecutando ARIMA...")
-        arima_results = run_arima_projection(data, horizon)
-        print("Resultado de ARIMA:", arima_results)
+        arima_results = run_arima_projection(data_processed, horizon)
         results['ARIMA'] = arima_results
     except Exception as e:
         print(f"Error ejecutando ARIMA: {e}")
@@ -31,8 +41,7 @@ def select_best_model(data, horizon):
     # Proyección con Proyección Lineal
     try:
         print("Ejecutando Proyección Lineal...")
-        linear_results = run_linear_projection(data, horizon)
-        print("Resultado de Proyección Lineal:", linear_results)
+        linear_results = run_linear_projection(data_processed, horizon)
         results['Linear Projection'] = linear_results
     except Exception as e:
         print(f"Error ejecutando Proyección Lineal: {e}")
@@ -41,8 +50,7 @@ def select_best_model(data, horizon):
     # Proyección con SARIMA
     try:
         print("Ejecutando SARIMA...")
-        sarima_results = run_sarima_projection(data, horizon)
-        print("Resultado de SARIMA:", sarima_results)
+        sarima_results = run_sarima_projection(data_processed, horizon)
         results['SARIMA'] = sarima_results
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
@@ -50,23 +58,22 @@ def select_best_model(data, horizon):
 
     # Verificar si al menos un modelo se ejecutó correctamente
     if not results:
-        print("No se pudo ejecutar ningún modelo. Por favor, verifica los datos y los parámetros.")
+        print("No se pudo ejecutar ningún modelo. Verifica los datos y parámetros.")
         return None
 
-    # Imprimir MAPEs para verificar la ejecución de los modelos
+    # Imprimir MAPEs para cada modelo
     print("\nMAPE de cada modelo:")
     for model_name, details in results.items():
         print(f"- MAPE de {model_name}: {details['mape']:.2%}")
 
-    # Encontrar el modelo con menor MAPE
+    # Seleccionar el modelo con menor MAPE
     best_model = min(results, key=lambda x: results[x]['mape'])
 
     return {
         'best_model': best_model,
         'details': results[best_model],
-        'all_results': results  # Incluye todos los resultados para análisis posterior
+        'all_results': results  # Todos los resultados para análisis posterior
     }
-
 
 def generate_graph(data, forecast, forecast_dates, best_model):
     """
@@ -81,8 +88,13 @@ def generate_graph(data, forecast, forecast_dates, best_model):
     """
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=data.index, y=data['CANTIDAD'], mode='lines', name='Datos Históricos'))
-    fig.add_trace(go.Scatter(x=forecast_dates, y=forecast, mode='lines+markers',
-                             name=f'Proyección {best_model}', line=dict(dash='dash', color='green')))
+    fig.add_trace(go.Scatter(
+        x=forecast_dates,
+        y=forecast,
+        mode='lines+markers',
+        name=f'Proyección {best_model}',
+        line=dict(dash='dash', color='green')
+    ))
     fig.update_layout(
         title=f"Proyección de Demanda ({best_model})",
         xaxis_title="Fecha",
