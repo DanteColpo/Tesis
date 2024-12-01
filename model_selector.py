@@ -4,6 +4,8 @@ from arima_model import run_arima_projection  # Corrección del nombre de la fun
 from linear_projection import run_linear_projection
 from sarima_model import run_sarima_projection
 
+import traceback  # Importar para mostrar errores detallados
+
 def select_best_model(data, horizon):
     """
     Evalúa múltiples modelos de proyección y selecciona el mejor basado en el MAPE más bajo.
@@ -18,27 +20,33 @@ def select_best_model(data, horizon):
 
     # Proyección con ARIMA
     try:
+        print("Ejecutando ARIMA...")
         arima_results = run_arima_projection(data, horizon)
+        print("Resultado de ARIMA:", arima_results)
         results['ARIMA'] = arima_results
     except Exception as e:
         print(f"Error ejecutando ARIMA: {e}")
-        arima_results = None  # Asegurarse de que la variable exista
+        traceback.print_exc()
 
     # Proyección con Proyección Lineal
     try:
+        print("Ejecutando Proyección Lineal...")
         linear_results = run_linear_projection(data, horizon)
+        print("Resultado de Proyección Lineal:", linear_results)
         results['Linear Projection'] = linear_results
     except Exception as e:
         print(f"Error ejecutando Proyección Lineal: {e}")
-        linear_results = None  # Asegurarse de que la variable exista
+        traceback.print_exc()
 
     # Proyección con SARIMA
     try:
+        print("Ejecutando SARIMA...")
         sarima_results = run_sarima_projection(data, horizon)
+        print("Resultado de SARIMA:", sarima_results)
         results['SARIMA'] = sarima_results
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
-        sarima_results = None  # Asegurarse de que la variable exista
+        traceback.print_exc()
 
     # Verificar si al menos un modelo se ejecutó correctamente
     if not results:
@@ -46,14 +54,9 @@ def select_best_model(data, horizon):
         return None
 
     # Imprimir MAPEs para verificar la ejecución de los modelos
-    print("\nLos % de errores asociados en los modelos fue:")
+    print("\nMAPE de cada modelo:")
     for model_name, details in results.items():
         print(f"- MAPE de {model_name}: {details['mape']:.2%}")
-
-    # MAPE individual para depuración
-    print("MAPE de ARIMA:", arima_results.get('mape') if arima_results else "No se ejecutó")
-    print("MAPE de Proyección Lineal:", linear_results.get('mape') if linear_results else "No se ejecutó")
-    print("MAPE de SARIMA:", sarima_results.get('mape') if sarima_results else "No se ejecutó")
 
     # Encontrar el modelo con menor MAPE
     best_model = min(results, key=lambda x: results[x]['mape'])
@@ -63,6 +66,7 @@ def select_best_model(data, horizon):
         'details': results[best_model],
         'all_results': results  # Incluye todos los resultados para análisis posterior
     }
+
 
 def generate_graph(data, forecast, forecast_dates, best_model):
     """
