@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 from design import show_logo_and_title, show_instructions, show_faq, show_contact_info
-from model_selector import select_best_model
+from model_selector import select_best_model, generate_graph
 from side_panels import show_left_panel, show_public_vs_private_demand
 
 # Configuración de la página
@@ -25,6 +24,9 @@ if uploaded_file:
         if not required_columns.issubset(data.columns):
             st.error("El archivo no contiene las columnas requeridas. Por favor verifica el formato.")
         else:
+            # Filtrar datos por sector privado
+            data = data[data['SECTOR'] == 'Privado']
+
             # Seleccionar horizonte
             horizon = st.selectbox("Selecciona el horizonte de proyección (meses):", [3, 6, 12])
 
@@ -52,26 +54,7 @@ if uploaded_file:
                         # Generar gráficos de comparación
                         if selected_models:
                             st.markdown("### Comparativa de Proyecciones")
-                            fig = go.Figure()
-                            fig.add_trace(go.Scatter(
-                                x=data['FECHA'], y=data['CANTIDAD'], mode='lines',
-                                name='Datos Históricos'
-                            ))
-                            for model in selected_models:
-                                model_results = results['all_results'][model]
-                                fig.add_trace(go.Scatter(
-                                    x=model_results['forecast_dates'],
-                                    y=model_results['forecast'],
-                                    mode='lines+markers',
-                                    name=f"Proyección {model}"
-                                ))
-                            fig.update_layout(
-                                title="Comparación de Modelos de Proyección",
-                                xaxis_title="Fecha",
-                                yaxis_title="Cantidad de Material (m³)",
-                                template="plotly_dark",
-                                hovermode="x"
-                            )
+                            fig = generate_graph(data, selected_models, results['all_results'])
                             st.plotly_chart(fig)
                         else:
                             st.warning("Por favor selecciona al menos un modelo para comparar.")
