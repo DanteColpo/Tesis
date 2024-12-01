@@ -78,7 +78,15 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         plotly.graph_objects.Figure: Gráfico generado.
     """
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data.index, y=data['CANTIDAD'], mode='lines', name='Datos Históricos'))
+    # Trazar los datos históricos con fechas en el eje X
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=data['CANTIDAD'],
+        mode='lines',
+        name='Datos Históricos'
+    ))
+
+    # Trazar la proyección con fechas en el eje X
     fig.add_trace(go.Scatter(
         x=forecast_dates,
         y=forecast,
@@ -86,11 +94,15 @@ def generate_graph(data, forecast, forecast_dates, best_model):
         name=f'Proyección {best_model}',
         line=dict(dash='dash', color='green')
     ))
+
+    # Configuración del diseño del gráfico
     fig.update_layout(
         title=f"Proyección de Demanda ({best_model})",
         xaxis_title="Fecha",
         yaxis_title="Cantidad de Material (m³)",
+        xaxis=dict(type='date', tickformat='%Y-%m'),  # Mostrar las fechas en formato Año-Mes
         template='plotly_dark',
-        hovermode="x"
+        hovermode="x unified"  # Mostrar datos unificados al pasar el cursor
     )
     return fig
+
