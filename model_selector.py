@@ -1,6 +1,5 @@
 import pandas as pd
 import plotly.graph_objects as go
-from data_preprocessor import preprocess_data  # Usar función de preprocesamiento
 from arima_model import run_arima_projection  # Proyección con ARIMA
 from linear_projection import run_linear_projection  # Proyección Lineal
 from sarima_model import run_sarima_projection  # Proyección con SARIMA
@@ -15,24 +14,14 @@ def select_best_model(data, horizon):
     Returns:
         dict: Resultados del modelo seleccionado, incluyendo proyección, MAPE y detalles del modelo.
     """
-    # Preprocesar los datos
-    try:
-        print("Preprocesando los datos...")
-        data_processed = preprocess_data(data)
-        if data_processed.empty:
-            raise ValueError("Los datos procesados están vacíos. Verifica tu archivo.")
-    except Exception as e:
-        print(f"Error durante el preprocesamiento: {e}")
-        traceback.print_exc()
-        return None
-
     # Diccionario para almacenar resultados
     results = {}
 
     # Proyección con ARIMA
     try:
         print("Ejecutando ARIMA...")
-        arima_results = run_arima_projection(data_processed, horizon)
+        arima_results = run_arima_projection(data, horizon)
+        print("Resultado ARIMA:", arima_results)
         results['ARIMA'] = arima_results
     except Exception as e:
         print(f"Error ejecutando ARIMA: {e}")
@@ -41,7 +30,8 @@ def select_best_model(data, horizon):
     # Proyección con Proyección Lineal
     try:
         print("Ejecutando Proyección Lineal...")
-        linear_results = run_linear_projection(data_processed, horizon)
+        linear_results = run_linear_projection(data, horizon)
+        print("Resultado Proyección Lineal:", linear_results)
         results['Linear Projection'] = linear_results
     except Exception as e:
         print(f"Error ejecutando Proyección Lineal: {e}")
@@ -50,7 +40,8 @@ def select_best_model(data, horizon):
     # Proyección con SARIMA
     try:
         print("Ejecutando SARIMA...")
-        sarima_results = run_sarima_projection(data_processed, horizon)
+        sarima_results = run_sarima_projection(data, horizon)
+        print("Resultado SARIMA:", sarima_results)
         results['SARIMA'] = sarima_results
     except Exception as e:
         print(f"Error ejecutando SARIMA: {e}")
