@@ -37,11 +37,11 @@ def show_faq():
     )
     
     faq_content = {
-        "1.- ¿Qué método utiliza esta aplicación para la proyección de demanda?": 
-        "Esta aplicación emplea el modelo ARIMA para realizar proyecciones basadas en datos históricos de demanda. ARIMA permite identificar patrones y prever fluctuaciones de manera precisa.",
+        "1.- ¿Qué métodos utiliza esta aplicación para la proyección de demanda?": 
+        "Esta aplicación emplea los modelos ARIMA, SARIMA y proyección lineal para realizar proyecciones basadas en datos históricos de demanda. Estos métodos permiten identificar patrones y prever fluctuaciones de manera precisa.",
         
-        "2.- ¿Por qué se usa ARIMA para la proyección de demanda?": 
-        "ARIMA es eficaz en el análisis de series temporales con patrones y estacionalidad, ayudando a las PYMEs a planificar sus recursos y mejorar la gestión de inventario.",
+        "2.- ¿Por qué se usan estos métodos para la proyección de demanda?": 
+        "Estos métodos son eficaces en el análisis de series temporales con patrones y estacionalidad, ayudando a las PYMEs a planificar sus recursos y mejorar la gestión de inventario.",
         
         "3.- ¿A quién va enfocada esta aplicación?": 
         "Esta aplicación está orientada a PYMEs en sectores con alta variabilidad de demanda, como el sector de áridos. Su objetivo es mejorar la planificación y reducir costos operativos.",
